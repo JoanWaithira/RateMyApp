@@ -1,0 +1,3111 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gate Sofia Digital Twin Validation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #0a0f1a;
+      --surface: #0f1926;
+      --border: rgba(125,211,252,0.15);
+      --accent: #7DD3FC;
+      --green: #4ADE80;
+      --text: #F1F5F9;
+      --muted: #64748B;
+      --star-empty: #334155;
+      --star-filled: #FBBF24;
+      --step-bar: #7DD3FC;
+      --admin-bar: #38bdf8;
+      --admin-bg: #101828;
+    }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    #app {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 32px 0 32px 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    @media (max-width: 700px) {
+      #app { padding: 16px 0; }
+    }
+    .surface {
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: 0 2px 16px 0 rgba(0,0,0,0.08);
+      border: 1px solid var(--border);
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 540px;
+      margin: 0 auto;
+      animation: stepIn 0.3s ease;
+    }
+    @media (max-width: 600px) {
+      .surface { padding: 18px 6vw; }
+    }
+    @keyframes stepIn {
+      from { opacity: 0; transform: translateY(12px);}
+      to   { opacity: 1; transform: translateY(0);}
+    }
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+      margin-top: 0;
+    }
+    .logo-area .logo {
+      font-size: 2.1rem;
+      margin-right: 8px;
+    }
+    .logo-area .brand {
+      font-weight: 600;
+      font-size: 1.25rem;
+      letter-spacing: 0.01em;
+    }
+    .logo-area .subtitle {
+      font-size: 1.05rem;
+      color: var(--accent);
+      font-weight: 400;
+      margin-left: 2px;
+      opacity: 0.85;
+    }
+    .progress-bar-wrap {
+      width: 100%;
+      margin-bottom: 8px;
+      margin-top: 0;
+      height: 4px;
+      background: rgba(125,211,252,0.07);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 4px;
+      background: var(--step-bar);
+      width: 0%;
+      transition: width 0.4s cubic-bezier(.4,1.2,.4,1);
+    }
+    .step-indicator {
+      font-size: 11px;
+      color: #475569;
+      margin-bottom: 18px;
+      margin-top: 2px;
+      letter-spacing: 0.04em;
+      text-align: left;
+    }
+    .main-heading {
+      font-size: 1.7rem;
+      font-weight: 500;
+      margin-bottom: 8px;
+      margin-top: 0;
+      letter-spacing: 0.01em;
+    }
+    .subheading {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 18px;
+      margin-top: 0;
+      font-weight: 400;
+    }
+    .bullets {
+      margin: 18px 0 24px 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    .bullets li {
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .bullets li::before {
+      content: "•";
+      color: var(--accent);
+      font-size: 1.2em;
+      margin-right: 8px;
+      line-height: 1.2;
+    }
+    .button, button, input[type="submit"] {
+      background: var(--accent);
+      color: #0a0f1a;
+      border: none;
+      border-radius: 8px;
+      padding: 13px 0;
+      font-size: 1.13rem;
+      font-weight: 500;
+      width: 100%;
+      margin-top: 18px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+      box-shadow: 0 1px 4px 0 rgba(125,211,252,0.07);
+      outline: none;
+    }
+    .button:disabled, button:disabled {
+      background: #334155;
+      color: #64748B;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .button:not(:disabled):hover, button:not(:disabled):hover {
+      background: #38bdf8;
+      transform: translateY(-1px) scale(1.01);
+    }
+    .footer-note {
+      font-size: 13px;
+      color: #64748B;
+      margin-top: 24px;
+      text-align: center;
+    }
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 600px) {
+      .role-grid { grid-template-columns: 1fr; }
+    }
+    .role-card {
+      background: rgba(15,23,42,0.8);
+      border: 1px solid rgba(125,211,252,0.12);
+      border-radius: 12px;
+      padding: 16px 14px;
+      cursor: pointer;
+      transition: border 0.15s, background 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 80px;
+      font-size: 1.08rem;
+      position: relative;
+    }
+    .role-card.selected {
+      border: 2px solid var(--accent);
+      background: rgba(125,211,252,0.08);
+    }
+    .role-card .role-emoji {
+      font-size: 1.5em;
+      margin-bottom: 2px;
+    }
+    .role-card .role-title {
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .role-card .role-desc {
+      font-size: 0.98em;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .input-row {
+      margin: 12px 0 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .input-row input[type="text"], .input-row input[type="email"] {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 14px;
+      margin-top: 2px;
+      outline: none;
+      transition: border 0.13s;
+    }
+    .input-row input[type="text"]:focus, .input-row input[type="email"]:focus {
+      border: 1.5px solid var(--accent);
+    }
+    .gallery {
+      width: 100%;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .gallery-img {
+      width: 100%;
+      max-width: 420px;
+      height: 240px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid rgba(125,211,252,0.2);
+      background: #1e293b;
+      margin-bottom: 8px;
+    }
+    .gallery-caption {
+      font-size: 1.01em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .gallery-arrows {
+      display: flex;
+      gap: 18px;
+      margin-bottom: 8px;
+    }
+    .gallery-arrow {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 1.7em;
+      cursor: pointer;
+      padding: 0 8px;
+      transition: color 0.13s;
+    }
+    .gallery-arrow:disabled {
+      color: #334155;
+      cursor: not-allowed;
+    }
+    .highlight-cards {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 18px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .highlight-card {
+      background: rgba(125,211,252,0.06);
+      border: 1px solid rgba(125,211,252,0.13);
+      border-radius: 12px;
+      padding: 16px 18px;
+      min-width: 170px;
+      flex: 0 0 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .highlight-card .icon {
+      font-size: 1.5em;
+      margin-bottom: 2px;
+    }
+    .highlight-card .title {
+      font-weight: 500;
+      font-size: 1.08em;
+      margin-bottom: 2px;
+    }
+    .highlight-card .desc {
+      font-size: 0.98em;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .task-card {
+      background: rgba(125,211,252,0.06);
+      border: 1px solid rgba(125,211,252,0.13);
+      border-radius: 12px;
+      padding: 18px 18px 12px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      animation: stepIn 0.3s;
+    }
+    .task-progress {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-align: right;
+    }
+    .task-heading {
+      font-weight: 500;
+      font-size: 1.13em;
+      margin-bottom: 2px;
+    }
+    .task-instructions {
+      font-size: 1.01em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .task-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .task-btn {
+      flex: 1;
+      background: #1e293b;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      padding: 10px 0;
+      font-size: 1.05em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.13s, border 0.13s;
+    }
+    .task-btn.selected, .task-btn:focus {
+      border: 2px solid var(--accent);
+      background: rgba(125,211,252,0.08);
+      color: var(--accent);
+    }
+    .task-btn:disabled {
+      color: #64748B;
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      cursor: not-allowed;
+    }
+    .radio-row {
+      display: flex;
+      gap: 18px;
+      margin-bottom: 8px;
+      margin-top: 2px;
+    }
+    .radio-label {
+      font-size: 1.01em;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .star-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    .star {
+      font-size: 24px;
+      color: var(--star-empty);
+      cursor: pointer;
+      transition: color 0.1s;
+      user-select: none;
+    }
+    .star.filled {
+      color: var(--star-filled);
+      text-shadow: 0 1px 4px #fbbf2422;
+    }
+    .star-row .star:focus {
+      outline: 2px solid var(--accent);
+    }
+    .feature-card {
+      background: rgba(125,211,252,0.06);
+      border: 1px solid rgba(125,211,252,0.13);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .feature-title {
+      font-weight: 500;
+      font-size: 1.08em;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .feature-desc {
+      font-size: 0.98em;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .dropdown {
+      width: 100%;
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 1.05em;
+      margin-bottom: 12px;
+      margin-top: 2px;
+      outline: none;
+      transition: border 0.13s;
+    }
+    .dropdown:focus {
+      border: 1.5px solid var(--accent);
+    }
+    .emoji-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+      margin-top: 2px;
+      justify-content: center;
+    }
+    .emoji-btn {
+      font-size: 2.1em;
+      background: none;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border 0.13s, background 0.13s;
+      padding: 2px 8px;
+      outline: none;
+    }
+    .emoji-btn.selected {
+      border: 2px solid var(--accent);
+      background: rgba(125,211,252,0.08);
+    }
+    .emoji-label {
+      text-align: center;
+      font-size: 0.98em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      min-height: 1.5em;
+    }
+    textarea {
+      width: 100%;
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 1.05em;
+      margin-bottom: 12px;
+      margin-top: 2px;
+      outline: none;
+      resize: vertical;
+      min-height: 48px;
+      transition: border 0.13s;
+    }
+    textarea:focus {
+      border: 1.5px solid var(--accent);
+    }
+    .ai-summary-card {
+      background: rgba(125,211,252,0.06);
+      border: 1px solid rgba(125,211,252,0.2);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      margin-top: 8px;
+    }
+    .ai-summary-title {
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .ai-summary-text {
+      font-size: 14px;
+      color: #CBD5E1;
+      line-height: 1.7;
+    }
+    .thankyou-check {
+      font-size: 48px;
+      color: var(--green);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .thankyou-heading {
+      font-size: 1.5rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .thankyou-sub {
+      font-size: 1.08rem;
+      color: var(--muted);
+      margin-bottom: 18px;
+      text-align: center;
+    }
+    .thankyou-stats {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .thankyou-stat {
+      font-size: 1.13em;
+      color: var(--accent);
+      font-weight: 500;
+      text-align: center;
+    }
+    .share-btn {
+      background: rgba(125,211,252,0.1);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 1.08em;
+      font-weight: 500;
+      margin: 0 auto 18px auto;
+      display: block;
+      width: fit-content;
+      cursor: pointer;
+      transition: background 0.13s, border 0.13s;
+    }
+    .share-btn:hover {
+      background: rgba(125,211,252,0.18);
+      border: 1.5px solid #38bdf8;
+      color: #38bdf8;
+    }
+    .notify-row {
+      margin-top: 18px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+    .notify-row input[type="email"] {
+      width: 220px;
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 1em;
+      outline: none;
+      transition: border 0.13s;
+    }
+    .notify-row button {
+      background: var(--green);
+      color: #0a0f1a;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.13s;
+    }
+    .notify-row button:disabled {
+      background: #334155;
+      color: #64748B;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .resume-banner {
+      background: rgba(125,211,252,0.09);
+      border: 1px solid rgba(125,211,252,0.18);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      animation: stepIn 0.3s;
+    }
+    .resume-banner .resume-btn {
+      background: var(--accent);
+      color: #0a0f1a;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 1em;
+      font-weight: 500;
+      margin-right: 8px;
+      cursor: pointer;
+      transition: background 0.13s;
+    }
+    .resume-banner .resume-btn:hover {
+      background: #38bdf8;
+    }
+    .resume-banner .startover-btn {
+      background: none;
+      color: var(--muted);
+      border: none;
+      font-size: 1em;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-left: 8px;
+      margin-right: 0;
+      padding: 0;
+    }
+    .back-btn {
+      position: absolute;
+      left: 0;
+      top: 0;
+      margin-top: 12px;
+      margin-left: 8px;
+      background: none;
+      color: var(--accent);
+      border: none;
+      font-size: 1.1em;
+      font-weight: 500;
+      cursor: pointer;
+      z-index: 10;
+      transition: color 0.13s;
+    }
+    .back-btn:disabled {
+      color: #334155;
+      cursor: not-allowed;
+    }
+    .loading-dots {
+      display: inline-block;
+      font-size: 1.2em;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-left: 4px;
+      animation: loadingDots 1.2s infinite steps(3);
+    }
+    @keyframes loadingDots {
+      0% { content: ""; }
+      33% { content: "."; }
+      66% { content: ".."; }
+      100% { content: "..."; }
+    }
+    /* Admin styles */
+    .admin-bg {
+      background: var(--admin-bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+    }
+    .admin-surface {
+      background: #172033;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px 0 rgba(0,0,0,0.08);
+      border: 1px solid var(--admin-bar);
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 900px;
+      margin: 32px auto;
+    }
+    .admin-heading {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--admin-bar);
+      margin-bottom: 12px;
+    }
+    .admin-bar-chart {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      margin-bottom: 18px;
+      margin-top: 8px;
+    }
+    .admin-bar {
+      background: var(--admin-bar);
+      border-radius: 4px 4px 0 0;
+      min-width: 38px;
+      text-align: center;
+      color: #fff;
+      font-size: 0.98em;
+      font-weight: 500;
+      margin-right: 2px;
+      transition: height 0.4s;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .admin-bar-label {
+      font-size: 0.93em;
+      color: #CBD5E1;
+      margin-top: 4px;
+      font-weight: 400;
+    }
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 18px;
+      font-size: 0.98em;
+    }
+    .admin-table th, .admin-table td {
+      border: 1px solid #334155;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    .admin-table th {
+      background: #1e293b;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .admin-table td {
+      background: #172033;
+      color: #CBD5E1;
+    }
+    .admin-raw-table {
+      max-height: 260px;
+      overflow-y: auto;
+      display: block;
+      margin-bottom: 18px;
+    }
+    .admin-ai-summary {
+      background: rgba(125,211,252,0.06);
+      border: 1px solid rgba(125,211,252,0.2);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      margin-top: 8px;
+    }
+    .admin-ai-role {
+      font-size: 0.98em;
+      color: var(--accent);
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .admin-download-btn {
+      background: var(--accent);
+      color: #0a0f1a;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 1em;
+      font-weight: 500;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: background 0.13s;
+    }
+    .admin-download-btn:hover {
+      background: #38bdf8;
+    }
+    .admin-password-modal {
+      background: rgba(10,15,26,0.98);
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .admin-password-box {
+      background: #172033;
+      border-radius: 12px;
+      border: 1.5px solid var(--admin-bar);
+      padding: 32px 28px;
+      max-width: 340px;
+      width: 100%;
+      box-shadow: 0 2px 16px 0 rgba(0,0,0,0.13);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .admin-password-box input[type="password"] {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 1.1em;
+      outline: none;
+      margin-bottom: 8px;
+      width: 100%;
+    }
+    .admin-password-box button {
+      background: var(--admin-bar);
+      color: #0a0f1a;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.13s;
+      width: 100%;
+    }
+    .admin-password-box button:disabled {
+      background: #334155;
+      color: #64748B;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .admin-password-error {
+      color: #f87171;
+      font-size: 0.98em;
+      margin-bottom: 4px;
+    }
+    /* Hide scrollbars for highlight cards on mobile */
+    .highlight-cards::-webkit-scrollbar { display: none; }
+    .highlight-cards { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    // ── CONFIG ─────────────────────────────────────
+    // Replace these before deploying
+    const CONFIG = {
+      DIGITAL_TWIN_URL:  "https://your-app.vercel.app",
+      GOOGLE_FORM_URL:   "YOUR_GOOGLE_FORM_URL_HERE",
+      SHEET_CSV_URL:     "YOUR_PUBLISHED_CSV_URL",
+      ADMIN_PASSWORD:    "gate2026"
+    };
+    // ── END CONFIG ────────────────────────────────
+
+    // Survey state
+    const defaultSurvey = () => ({
+      startedAt:    new Date().toISOString(),
+      role:         null,
+      name:         "",
+      currentStep:  1,
+      totalSteps:   8,
+      tasks: {
+        task1: { completed: null, time: null },
+        task2: { completed: null, time: null },
+        task3: { completed: null, time: null, scenario: null },
+      },
+      ratings: {
+        viewer:    0,
+        energy:    0,
+        solar:     0,
+        iaq:       0,
+        faults:    0,
+        scenarios: 0,
+        forecast:  0,
+        roles:     0,
+      },
+      mostUseful:   null,
+      needsWork:    null,
+      overall:      0,
+      whatWorked:   "",
+      whatNeeded:   "",
+      wouldUse:     null,
+      other:        "",
+      aiSummary:    "",
+      email:        "",
+    });
+
+    // LocalStorage helpers
+    function saveSurvey(survey) {
+      localStorage.setItem("gate_survey", JSON.stringify(survey));
+    }
+    function loadSurvey() {
+      try {
+        const s = localStorage.getItem("gate_survey");
+        if (!s) return null;
+        return JSON.parse(s);
+      } catch { return null; }
+    }
+    function clearSurvey() {
+      localStorage.removeItem("gate_survey");
+    }
+
+    // Step titles for progress bar
+    const STEP_TITLES = [
+      "Welcome",
+      "Role Selection",
+      "Guided Tour",
+      "Task Testing",
+      "Feature Ratings",
+      "Feedback",
+      "AI Summary",
+      "Thank You"
+    ];
+
+    // Role options
+    const ROLES = [
+      {
+        key: "director",
+        emoji: "🏢",
+        title: "Building Director / Management",
+        desc: "Strategic decisions, costs, sustainability"
+      },
+      {
+        key: "facilities",
+        emoji: "🔧",
+        title: "Facilities Manager",
+        desc: "Day-to-day operations, maintenance, equipment"
+      },
+      {
+        key: "sustainability",
+        emoji: "🌿",
+        title: "Sustainability Officer",
+        desc: "Carbon reporting, energy targets, green goals"
+      },
+      {
+        key: "it",
+        emoji: "💻",
+        title: "IT Staff",
+        desc: "Systems, servers, infrastructure"
+      },
+      {
+        key: "worker",
+        emoji: "👤",
+        title: "Office Worker",
+        desc: "Daily occupant, comfort and environment"
+      },
+      {
+        key: "visitor",
+        emoji: "🌍",
+        title: "External Visitor / Stakeholder",
+        desc: "Visiting the building or reviewing the project"
+      }
+    ];
+
+    // Feature ratings
+    const FEATURES = [
+      { key: "viewer",    emoji: "🏢", title: "3D Building Viewer", desc: "Navigating the building in 3D" },
+      { key: "energy",    emoji: "⚡", title: "Energy Monitoring", desc: "Seeing circuit-level power data" },
+      { key: "solar",     emoji: "☀️", title: "Solar & Battery", desc: "Tracking solar generation and battery" },
+      { key: "iaq",       emoji: "🌡", title: "Room Air Quality", desc: "CO₂, temperature and humidity by room" },
+      { key: "faults",    emoji: "🔍", title: "Fault Detection", desc: "Automatic alerts when something is wrong" },
+      { key: "scenarios", emoji: "🎯", title: "Scenarios", desc: "What-if calculations for changes" },
+      { key: "forecast",  emoji: "🔮", title: "Forecast", desc: "7-day energy and cost predictions" },
+      { key: "roles",     emoji: "👤", title: "Role Dashboard", desc: "Personalised view for your role" }
+    ];
+
+    // Screenshot gallery for fallback
+    const GALLERY = [
+      { src: "https://i.imgur.com/1.png", caption: "3D building overview" },
+      { src: "https://i.imgur.com/2.png", caption: "Energy monitoring by circuit" },
+      { src: "https://i.imgur.com/3.png", caption: "Solar generation and battery" },
+      { src: "https://i.imgur.com/4.png", caption: "Fault detection alerts" }
+    ];
+
+    // Highlight cards for tour
+    const HIGHLIGHTS = [
+      { icon: "🏢", title: "Live 3D Building", desc: "Navigate the building in 3D and see real-time data overlaid on each room" },
+      { icon: "⚡", title: "Energy Monitoring", desc: "Track 16 electrical circuits with 48 hours of replay data" },
+      { icon: "🔍", title: "Fault Detection", desc: "19 automated rules detect problems before they become expensive" }
+    ];
+
+    // Task definitions
+    function getTask2(role) {
+      if (role === "director" || role === "sustainability") {
+        return {
+          heading: "Find the solar savings for today",
+          instructions: "1. Open the Replay panel\n2. Click the Solar tab (☀️)\n3. Find how much solar saved today in €"
+        };
+      }
+      if (role === "facilities" || role === "it") {
+        return {
+          heading: "Find an active fault",
+          instructions: "1. Look for the fault detection button (top left of the screen)\n2. Open the Fault panel\n3. Find what the most serious fault is and what action is recommended"
+        };
+      }
+      if (role === "worker") {
+        return {
+          heading: "Check your room's air quality",
+          instructions: "1. Open the Replay panel\n2. Click the IAQ Rooms tab (🌡)\n3. Find the CO₂ level for any room"
+        };
+      }
+      // visitor
+      return {
+        heading: "Find out what % solar powers the building",
+        instructions: "1. Open the Replay panel\n2. Click the Solar tab (☀️)\n3. Find the solar coverage percentage"
+      };
+    }
+
+    // Emoji rating labels
+    const EMOJI_LABELS = [
+      "Needs a lot of work",
+      "Below expectations",
+      "Meets expectations",
+      "Exceeds expectations",
+      "Exceptional"
+    ];
+
+    // Would use options
+    const WOULD_USE = [
+      "Yes, regularly",
+      "Yes, occasionally",
+      "Probably not",
+      "No"
+    ];
+
+    // Dropdown options for most useful/needs improvement
+    const FEATURE_DROPDOWN = [
+      "3D Building Viewer",
+      "Energy Monitoring",
+      "Solar & Battery",
+      "Room Air Quality",
+      "Fault Detection",
+      "Scenarios",
+      "Forecast",
+      "Role Dashboard"
+    ];
+
+    // Add "Other" for needs improvement
+    const FEATURE_DROPDOWN_NEEDS = [...FEATURE_DROPDOWN, "Other"];
+
+    // Step rendering
+    function renderStep(survey, setSurvey, step, setStep, aiLoading, aiError, aiSummary, setAiSummary, adminMode) {
+      // Helper: update survey and save
+      function updateSurvey(upd) {
+        const next = { ...survey, ...upd };
+        saveSurvey(next);
+        setSurvey(next);
+      }
+      // Helper: go to next step
+      function nextStep() {
+        if (step < survey.totalSteps) setStep(step + 1);
+      }
+      // Helper: go to prev step
+      function prevStep() {
+        if (step > 1) setStep(step - 1);
+      }
+      // Helper: set field
+      function setField(field, value) {
+        updateSurvey({ [field]: value });
+      }
+      // Helper: set nested field
+      function setNested(obj, key, value) {
+        updateSurvey({ [obj]: { ...survey[obj], [key]: value } });
+      }
+      // Helper: set task field
+      function setTask(task, field, value) {
+        updateSurvey({ tasks: { ...survey.tasks, [task]: { ...survey.tasks[task], [field]: value } } });
+      }
+      // Helper: set rating
+      function setRating(key, value) {
+        updateSurvey({ ratings: { ...survey.ratings, [key]: value } });
+      }
+
+      // Step 1: Welcome
+      if (step === 1) {
+        return `
+          <div class="surface" style="position:relative;">
+            <div class="logo-area">
+              <span class="logo">🏢</span>
+              <span class="brand">Gate Sofia</span>
+              <span class="subtitle">Digital Twin Validation</span>
+            </div>
+            <div class="main-heading">Help us improve the Gate Sofia Digital Twin</div>
+            <div class="subheading">This takes 8-10 minutes. Your feedback directly shapes how the system develops.</div>
+            <ul class="bullets">
+              <li>A short tour of the application</li>
+              <li>3 simple tasks to try</li>
+              <li>A few questions about your experience</li>
+            </ul>
+            <button class="button" id="start-btn">Get started &rarr;</button>
+            <div class="footer-note">Your responses are anonymous unless you choose to share your name.</div>
+          </div>
+        `;
+      }
+
+      // Step 2: Role selection
+      if (step === 2) {
+        return `
+          <button class="back-btn" id="back-btn">&larr; Back</button>
+          <div class="surface" style="position:relative;">
+            <div class="main-heading">First, tell us your role</div>
+            <div class="subheading">This helps us understand your perspective</div>
+            <div class="role-grid">
+              ${ROLES.map(r => `
+                <div class="role-card${survey.role === r.key ? " selected" : ""}" data-role="${r.key}">
+                  <div class="role-emoji">${r.emoji}</div>
+                  <div class="role-title">${r.title}</div>
+                  <div class="role-desc">${r.desc}</div>
+                </div>
+              `).join("")}
+            </div>
+            <div class="input-row">
+              <input type="text" id="name-input" placeholder="Your name (optional)" value="${survey.name || ""}" style="font-size:14px;">
+            </div>
+            <button class="button" id="role-continue-btn"${survey.role ? "" : " disabled"}>Continue &rarr;</button>
+          </div>
+        `;
+      }
+
+      // Step 3: Guided tour
+      if (step === 3) {
+        // Try iframe, fallback to gallery
+        let iframeHtml = `
+          <iframe src="${CONFIG.DIGITAL_TWIN_URL}" style="width:100%;height:320px;max-height:480px;border-radius:12px;border:1px solid rgba(125,211,252,0.2);background:#1e293b;" title="Gate Sofia Digital Twin" id="twin-iframe"></iframe>
+          <div id="iframe-fallback" style="display:none;">
+            <div class="gallery">
+              <img src="${GALLERY[0].src}" class="gallery-img" id="gallery-img">
+              <div class="gallery-caption" id="gallery-caption">${GALLERY[0].caption}</div>
+              <div class="gallery-arrows">
+                <button class="gallery-arrow" id="gallery-prev" disabled>&larr;</button>
+                <button class="gallery-arrow" id="gallery-next">&rarr;</button>
+              </div>
+            </div>
+          </div>
+        `;
+        return `
+          <button class="back-btn" id="back-btn">&larr; Back</button>
+          <div class="surface" style="position:relative;">
+            <div class="main-heading">Here's what the digital twin does</div>
+            <div class="subheading">Take 2 minutes to explore these features</div>
+            ${iframeHtml}
+            <div class="highlight-cards">
+              ${HIGHLIGHTS.map(h => `
+                <div class="highlight-card">
+                  <div class="icon">${h.icon}</div>
+                  <div class="title">${h.title}</div>
+                  <div class="desc">${h.desc}</div>
+                </div>
+              `).join("")}
+            </div>
+            <button class="button" id="tour-continue-btn">I've had a look — continue &rarr;</button>
+          </div>
+        `;
+      }
+
+      // Step 4: Task testing
+      if (step === 4) {
+        // Which task is active?
+        const taskNum = survey.tasks.task1.completed === null ? 1 :
+                        survey.tasks.task2.completed === null ? 2 : 3;
+        const taskProgress = `Task ${taskNum} of 3`;
+        let task;
+        if (taskNum === 1) {
+          task = {
+            heading: "Find today's energy cost",
+            instructions: "In the digital twin:\n1. Open the Replay panel (right side)\n2. Click the Energy tab\n3. Find the estimated cost figure"
+          };
+        } else if (taskNum === 2) {
+          task = getTask2(survey.role);
+        } else {
+          task = {
+            heading: "Find a 'what if' scenario relevant to you",
+            instructions: "1. Open the Replay panel\n2. Click the Scenarios tab (🎯)\n3. Find a scenario that interests you\n4. Try adjusting the slider if there is one"
+          };
+        }
+        // Task buttons
+        const completed = survey.tasks[`task${taskNum}`].completed;
+        const time = survey.tasks[`task${taskNum}`].time;
+        const scenario = survey.tasks.task3.scenario;
+        // Task 3 extra question
+        const scenarioQ = taskNum === 3 ? `
+          <div style="margin-top:8px;">
+            <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">Did the scenario result make sense to you?</div>
+            <div class="radio-row">
+              ${["Yes", "Mostly", "Not really"].map(opt => `
+                <label class="radio-label">
+                  <input type="radio" name="scenario-q" value="${opt}"${scenario === opt ? " checked" : ""}>
+                  ${opt}
+                </label>
+              `).join("")}
+            </div>
+          </div>
+        ` : "";
+        // Task buttons
+        const btns = [
+          { label: "✓ Yes, easily", val: "easy" },
+          { label: "~ Yes, with some difficulty", val: "hard" },
+          { label: "✗ No, I couldn't find it", val: "fail" }
+        ];
+        // Time radio
+        const times = ["Under 30s", "30s-1min", "Over 1 min"];
+        return `
+          <button class="back-btn" id="back-btn">&larr; Back</button>
+          <div class="surface" style="position:relative;">
+            <div class="main-heading">Now try these 3 tasks</div>
+            <div class="subheading">Open the digital twin in a new tab and try each task. Then come back and tell us how it went.</div>
+            <a href="${CONFIG.DIGITAL_TWIN_URL}" target="_blank" class="share-btn" style="margin-bottom:18px;">Open Gate Sofia Digital Twin &nearr;</a>
+            <div class="task-progress">${taskProgress}</div>
+            <div class="task-card">
+              <div class="task-heading">${task.heading}</div>
+              <div class="task-instructions" style="white-space:pre-line;">${task.instructions}</div>
+              <div class="task-buttons">
+                ${btns.map(b => `
+                  <button class="task-btn${completed === b.val ? " selected" : ""}" data-val="${b.val}">${b.label}</button>
+                `).join("")}
+              </div>
+              <div style="margin-top:8px;">
+                <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">How long did it take?</div>
+                <div class="radio-row">
+                  ${times.map(t => `
+                    <label class="radio-label">
+                      <input type="radio" name="time-radio" value="${t}"${time === t ? " checked" : ""}>
+                      ${t}
+                    </label>
+                  `).join("")}
+                </div>
+              </div>
+              ${scenarioQ}
+            </div>
+            <button class="button" id="task-next-btn"${completed && time && (taskNum !== 3 || scenario) ? "" : " disabled"}>${taskNum < 3 ? "Next task →" : "Continue to ratings →"}</button>
+          </div>
+        `;
+      }
+
+      // Step 5: Feature ratings
+      if (step === 5) {
+        return `
+          <button class="back-btn" id="back-btn">&larr; Back</button>
+          <div class="surface" style="position:relative;">
+            <div class="main-heading">Rate these features</div>
+            <div class="subheading">1 star = not useful, 5 stars = very useful</div>
+            ${FEATURES.map(f => `
+              <div class="feature-card">
+                <div class="feature-title">${f.emoji} ${f.title}</div>
+                <div class="feature-desc">${f.desc}</div>
+                <div class="star-row" data-key="${f.key}">
+                  ${[1,2,3,4,5].map(i => `
+                    <span class="star${survey.ratings[f.key] >= i ? " filled" : ""}" data-star="${i}" tabindex="0" aria-label="${i} star${i>1?"s":""}">${survey.ratings[f.key] >= i ? "★" : "☆"}</span>
+                  `).join("")}
+                </div>
+              </div>
+            `).join("")}
+            <div style="margin-top:18px;">
+              <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">Which feature would you use most often?</div>
+              <select class="dropdown" id="most-useful">
+                <option value="">Select...</option>
+                ${FEATURE_DROPDOWN.map(f => `
+                  <option value="${f}"${survey.mostUseful === f ? " selected" : ""}>${f}</option>
+                `).join("")}
+              </select>
+            </div>
+            <div style="margin-top:8px;">
+              <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">Which feature needs the most improvement?</div>
+              <select class="dropdown" id="needs-work">
+                <option value="">Select...</option>
+                ${FEATURE_DROPDOWN_NEEDS.map(f => `
+                  <option value="${f}"${survey.needsWork === f ? " selected" : ""}>${f}</option>
+                `).join("")}
+              </select>
+            </div>
+            <button class="button" id="ratings-next-btn"${Object.values(survey.ratings).every(v=>v>0)&&survey.mostUseful&&survey.needsWork?"":" disabled"}>Continue →</button>
+          </div>
+        `;
+      }
+
+      // Step 6: Free-form feedback
+      if (step === 6) {
+        return `
+          <button class="back-btn" id="back-btn">&larr; Back</button>
+          <div class="surface" style="position:relative;">
+            <div class="main-heading">A few more questions</div>
+            <div style="margin-bottom:12px;font-size:1.01em;color:var(--muted);">Overall, how would you rate the digital twin?</div>
+            <div class="emoji-row">
+              ${["😞","😐","🙂","😊","🤩"].map((e,i) => `
+                <button class="emoji-btn${survey.overall===i+1?" selected":""}" data-emoji="${i+1}" tabindex="0" aria-label="${EMOJI_LABELS[i]}">${e}</button>
+              `).join("")}
+            </div>
+            <div class="emoji-label" id="emoji-label">${survey.overall?EMOJI_LABELS[survey.overall-1]:""}</div>
+            <div style="margin-top:12px;">
+              <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">What did you find most useful or impressive?</div>
+              <textarea id="what-worked" rows="3" placeholder="e.g. The 3D view made it easy to understand the building layout">${survey.whatWorked||""}</textarea>
+            </div>
+            <div>
+              <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">What was confusing, missing, or frustrating?</div>
+              <textarea id="what-needed" rows="3" placeholder="e.g. I couldn't figure out how to switch between roles">${survey.whatNeeded||""}</textarea>
+            </div>
+            <div>
+              <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">If this system was running in your building, would you use it in your daily work?</div>
+              <div class="radio-row">
+                ${WOULD_USE.map(opt => `
+                  <label class="radio-label">
+                    <input type="radio" name="would-use" value="${opt}"${survey.wouldUse===opt?" checked":""}>
+                    ${opt}
+                  </label>
+                `).join("")}
+              </div>
+            </div>
+            <div>
+              <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">Any other comments, ideas, or questions?</div>
+              <textarea id="other" rows="2" placeholder="">${survey.other||""}</textarea>
+            </div>
+            <button class="button" id="feedback-next-btn"${survey.overall?"":" disabled"}>Continue →</button>
+          </div>
+        `;
+      }
+
+      // Step 7: AI summary
+      if (step === 7) {
+        return `
+          <button class="back-btn" id="back-btn">&larr; Back</button>
+          <div class="surface" style="position:relative;">
+            <div class="main-heading">Generating your personalised summary...</div>
+            <div class="subheading">Please wait a moment while we summarise your feedback.</div>
+            <div style="margin:32px 0 24px 0;text-align:center;">
+              <span style="font-size:2.2em;">✨</span>
+              <span class="loading-dots">...</span>
+            </div>
+            ${aiError ? `<div style="color:#f87171;font-size:1.05em;margin-bottom:12px;">${aiError}</div>` : ""}
+            ${aiSummary ? `
+              <div class="ai-summary-card">
+                <div class="ai-summary-title">✨ AI Summary of your feedback</div>
+                <div class="ai-summary-text">${aiSummary}</div>
+              </div>
+              <button class="button" id="summary-next-btn">Continue →</button>
+            ` : ""}
+          </div>
+        `;
+      }
+
+      // Step 8: Thank you
+      if (step === 8) {
+        // Count-up stats
+        const completed = ["task1","task2","task3"].filter(t => survey.tasks[t].completed === "easy").length;
+        const avgRating = (Object.values(survey.ratings).reduce((a,b)=>a+b,0)/8).toFixed(1);
+        return `
+          <div class="surface" style="position:relative;">
+            <div class="thankyou-check">✓</div>
+            <div class="thankyou-heading">Thank you for your feedback!</div>
+            <div class="thankyou-sub">Your input directly shapes how the Gate Sofia Digital Twin develops.</div>
+            <div class="ai-summary-card">
+              <div class="ai-summary-title">✨ AI Summary of your feedback</div>
+              <div class="ai-summary-text">${survey.aiSummary||""}</div>
+            </div>
+            <div class="thankyou-stats">
+              <div class="thankyou-stat" id="stat-tasks">You completed <span id="stat-tasks-num">0</span>/3 tasks</div>
+              <div class="thankyou-stat" id="stat-rating">Average feature rating: <span id="stat-rating-num">0.0</span>/5</div>
+            </div>
+            <a href="${CONFIG.DIGITAL_TWIN_URL}" target="_blank" class="share-btn">Share the digital twin &nearr;</a>
+            <div class="notify-row">
+              <input type="email" id="notify-email" placeholder="Want updates? Enter your email">
+              <button id="notify-btn">Notify me</button>
+            </div>
+          </div>
+        `;
+      }
+
+      // Fallback
+      return `<div class="surface"><div>Unknown step.</div></div>`;
+    }
+
+    // Main app logic
+    function main() {
+      const app = document.getElementById("app");
+      let survey = loadSurvey() || defaultSurvey();
+      let step = survey.currentStep;
+      let aiLoading = false, aiError = "", aiSummary = survey.aiSummary;
+      let adminMode = window.location.search.includes("admin=true");
+
+      // Resume banner
+      function renderResumeBanner() {
+        app.innerHTML = `
+          <div class="resume-banner">
+            <div style="font-size:1.13em;font-weight:500;margin-bottom:4px;">Resume your survey?</div>
+            <div style="color:var(--muted);font-size:0.98em;margin-bottom:8px;">You have an incomplete survey. Would you like to continue or start over?</div>
+            <div>
+              <button class="resume-btn" id="resume-btn">Continue</button>
+              <button class="startover-btn" id="startover-btn">Start over</button>
+            </div>
+          </div>
+        `;
+        document.getElementById("resume-btn").onclick = () => {
+          step = survey.currentStep;
+          render();
+        };
+        document.getElementById("startover-btn").onclick = () => {
+          clearSurvey();
+          survey = defaultSurvey();
+          step = 1;
+          render();
+        };
+      }
+
+      // Render progress bar and step indicator
+      function renderProgress() {
+        const pct = Math.round((step-1)/(survey.totalSteps-1)*100);
+        return `
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" style="width:${pct}%;"></div>
+          </div>
+          <div class="step-indicator">Step ${step} of ${survey.totalSteps} — ${STEP_TITLES[step-1]}</div>
+        `;
+      }
+
+      // Main render
+      function render() {
+        // Resume banner
+        if (step === 1 && loadSurvey() && loadSurvey().currentStep > 1) {
+          renderResumeBanner();
+          return;
+        }
+        // Progress bar
+        app.innerHTML = renderProgress() + renderStep(survey, setSurvey, step, setStep, aiLoading, aiError, aiSummary, setAiSummary, adminMode);
+        // Animate progress bar
+        setTimeout(() => {
+          const bar = document.querySelector(".progress-bar");
+          if (bar) bar.style.width = Math.round((step-1)/(survey.totalSteps-1)*100) + "%";
+        }, 10);
+
+        // Step 1: Welcome
+        if (step === 1) {
+          document.getElementById("start-btn").onclick = () => {
+            setStep(2);
+          };
+        }
+
+        // Step 2: Role selection
+        if (step === 2) {
+          document.getElementById("back-btn").onclick = () => setStep(1);
+          document.querySelectorAll(".role-card").forEach(card => {
+            card.onclick = () => {
+              setField("role", card.getAttribute("data-role"));
+              render();
+            };
+          });
+          document.getElementById("name-input").oninput = e => {
+            setField("name", e.target.value);
+          };
+          document.getElementById("role-continue-btn").onclick = () => {
+            setStep(3);
+          };
+        }
+
+        // Step 3: Guided tour
+        if (step === 3) {
+          document.getElementById("back-btn").onclick = () => setStep(2);
+          // Iframe fallback
+          const iframe = document.getElementById("twin-iframe");
+          let fallbackShown = false;
+          if (iframe) {
+            iframe.onerror = () => showFallback();
+            setTimeout(() => {
+              try {
+                // Try to access contentWindow; if blocked, fallback
+                if (iframe.contentWindow && !fallbackShown) {
+                  // If X-Frame-Options blocks, this will throw
+                  iframe.contentWindow.location.href;
+                }
+              } catch {
+                showFallback();
+              }
+            }, 1200);
+          }
+          function showFallback() {
+            fallbackShown = true;
+            document.getElementById("twin-iframe").style.display = "none";
+            document.getElementById("iframe-fallback").style.display = "block";
+            let idx = 0;
+            function updateGallery() {
+              document.getElementById("gallery-img").src = GALLERY[idx].src;
+              document.getElementById("gallery-caption").textContent = GALLERY[idx].caption;
+              document.getElementById("gallery-prev").disabled = idx === 0;
+              document.getElementById("gallery-next").disabled = idx === GALLERY.length-1;
+            }
+            document.getElementById("gallery-prev").onclick = () => { if (idx>0) { idx--; updateGallery(); }};
+            document.getElementById("gallery-next").onclick = () => { if (idx<GALLERY.length-1) { idx++; updateGallery(); }};
+            updateGallery();
+          }
+          document.getElementById("tour-continue-btn").onclick = () => setStep(4);
+        }
+
+        // Step 4: Task testing
+        if (step === 4) {
+          document.getElementById("back-btn").onclick = () => setStep(3);
+          // Which task?
+          const taskNum = survey.tasks.task1.completed === null ? 1 :
+                          survey.tasks.task2.completed === null ? 2 : 3;
+          // Task buttons
+          document.querySelectorAll(".task-btn").forEach(btn => {
+            btn.onclick = () => {
+              setTask(`task${taskNum}`, "completed", btn.getAttribute("data-val"));
+              render();
+            };
+          });
+          // Time radio
+          document.querySelectorAll("input[name='time-radio']").forEach(radio => {
+            radio.onchange = e => {
+              setTask(`task${taskNum}`, "time", e.target.value);
+              render();
+            };
+          });
+          // Scenario Q
+          if (taskNum === 3) {
+            document.querySelectorAll("input[name='scenario-q']").forEach(radio => {
+              radio.onchange = e => {
+                setTask("task3", "scenario", e.target.value);
+                render();
+              };
+            });
+          }
+          // Next button
+          document.getElementById("task-next-btn").onclick = () => {
+            if (taskNum < 3) {
+              setTask(`task${taskNum}`, "completed", survey.tasks[`task${taskNum}`].completed);
+              setTask(`task${taskNum}`, "time", survey.tasks[`task${taskNum}`].time);
+              setStep(4);
+            } else {
+              setStep(5);
+            }
+          };
+        }
+
+        // Step 5: Feature ratings
+        if (step === 5) {
+          document.getElementById("back-btn").onclick = () => setStep(4);
+          // Star ratings
+          FEATURES.forEach(f => {
+            document.querySelectorAll(`.star-row[data-key="${f.key}"] .star`).forEach((star, i) => {
+              star.onmouseenter = () => {
+                document.querySelectorAll(`.star-row[data-key="${f.key}"] .star`).forEach((s, j) => {
+                  s.classList.toggle("filled", j <= i);
+                  s.textContent = j <= i ? "★" : "☆";
+                });
+              };
+              star.onmouseleave = () => {
+                document.querySelectorAll(`.star-row[data-key="${f.key}"] .star`).forEach((s, j) => {
+                  s.classList.toggle("filled", survey.ratings[f.key] >= j+1);
+                  s.textContent = survey.ratings[f.key] >= j+1 ? "★" : "☆";
+                });
+              };
+              star.onclick = () => {
+                setRating(f.key, i+1);
+                render();
+              };
+              star.onkeydown = e => {
+                if (e.key === "Enter" || e.key === " ") {
+                  setRating(f.key, i+1);
+                  render();
+                }
+              };
+            });
+          });
+          // Dropdowns
+          document.getElementById("most-useful").onchange = e => {
+            setField("mostUseful", e.target.value);
+            render();
+          };
+          document.getElementById("needs-work").onchange = e => {
+            setField("needsWork", e.target.value);
+            render();
+          };
+          document.getElementById("ratings-next-btn").onclick = () => setStep(6);
+        }
+
+        // Step 6: Free-form feedback
+        if (step === 6) {
+          document.getElementById("back-btn").onclick = () => setStep(5);
+          // Emoji
+          document.querySelectorAll(".emoji-btn").forEach(btn => {
+            btn.onclick = () => {
+              setField("overall", parseInt(btn.getAttribute("data-emoji")));
+              render();
+            };
+            btn.onkeydown = e => {
+              if (e.key === "Enter" || e.key === " ") {
+                setField("overall", parseInt(btn.getAttribute("data-emoji")));
+                render();
+              }
+            };
+          });
+          // Emoji label
+          if (survey.overall) {
+            document.getElementById("emoji-label").textContent = EMOJI_LABELS[survey.overall-1];
+          }
+          // Textareas
+          document.getElementById("what-worked").oninput = e => {
+            setField("whatWorked", e.target.value);
+          };
+          document.getElementById("what-needed").oninput = e => {
+            setField("whatNeeded", e.target.value);
+          };
+          document.getElementById("other").oninput = e => {
+            setField("other", e.target.value);
+          };
+          // Would use
+          document.querySelectorAll("input[name='would-use']").forEach(radio => {
+            radio.onchange = e => {
+              setField("wouldUse", e.target.value);
+              render();
+            };
+          });
+          document.getElementById("feedback-next-btn").onclick = () => setStep(7);
+        }
+
+        // Step 7: AI summary
+        if (step === 7) {
+          document.getElementById("back-btn").onclick = () => setStep(6);
+          // If not already loaded, call Claude API
+          if (!survey.aiSummary && !aiLoading) {
+            aiLoading = true;
+            aiError = "";
+            render();
+            // Prompt for API key if not set
+            let apiKey = localStorage.getItem("anthropic_api_key") || "";
+            if (!apiKey) {
+              apiKey = prompt("Enter your Anthropic API key (for Claude):");
+              if (!apiKey) {
+                aiError = "API key required for summary.";
+                aiLoading = false;
+                render();
+                return;
+              }
+              localStorage.setItem("anthropic_api_key", apiKey);
+            }
+            // Compose prompt
+            const prompt = `You are summarising feedback about the Gate Sofia Digital Twin application.
+
+User role: ${ROLES.find(r=>r.key===survey.role)?.title||survey.role}
+
+Task completion:
+${JSON.stringify(survey.tasks)}
+
+Feature ratings (1-5):
+${JSON.stringify(survey.ratings)}
+
+Overall rating: ${survey.overall}/5
+
+What worked well: ${survey.whatWorked}
+What needs improvement: ${survey.whatNeeded}
+Would use it: ${survey.wouldUse}
+
+Write a SHORT personalised feedback summary (3-4 sentences) addressing:
+1. What this user valued most based on their role and ratings
+2. The main pain point they experienced
+3. One specific recommendation for improving their experience
+
+Write directly to the development team, not to the user.
+Be specific and actionable.
+Plain English. No bullet points.`;
+            fetch("https://api.anthropic.com/v1/messages", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-api-key": apiKey,
+                "anthropic-version": "2023-06-01"
+              },
+              body: JSON.stringify({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 1000,
+                messages: [{
+                  role: "user",
+                  content: prompt
+                }]
+              })
+            })
+            .then(r => r.json())
+            .then(data => {
+              let summary = "";
+              if (data.content && data.content[0] && data.content[0].text) {
+                summary = data.content[0].text;
+              } else if (data.completion) {
+                summary = data.completion;
+              } else {
+                summary = "Could not generate summary.";
+              }
+              setAiSummary(summary);
+              setField("aiSummary", summary);
+              aiLoading = false;
+              render();
+            })
+            .catch(e => {
+              aiError = "Error: " + (e.message || "Could not reach Claude API.");
+              aiLoading = false;
+              render();
+            });
+          }
+          if (aiSummary) {
+            document.getElementById("summary-next-btn").onclick = () => {
+              // Submit to Google Form
+              submitToGoogleForm(survey, () => setStep(8));
+            };
+          }
+        }
+
+        // Step 8: Thank you
+        if (step === 8) {
+          // Animate stats
+          let completed = ["task1","task2","task3"].filter(t => survey.tasks[t].completed === "easy").length;
+          let avgRating = (Object.values(survey.ratings).reduce((a,b)=>a+b,0)/8).toFixed(1);
+          let t = 0, r = 0.0;
+          let tEl = document.getElementById("stat-tasks-num");
+          let rEl = document.getElementById("stat-rating-num");
+          function animateStats() {
+            if (t < completed) { t++; tEl.textContent = t; }
+            if (parseFloat(rEl.textContent) < avgRating) {
+              r = Math.min(parseFloat(rEl.textContent)+0.1, avgRating);
+              rEl.textContent = r.toFixed(1);
+            }
+            if (t < completed || parseFloat(rEl.textContent) < avgRating) {
+              setTimeout(animateStats, 40);
+            }
+          }
+          setTimeout(animateStats, 300);
+          // Notify email
+          document.getElementById("notify-btn").onclick = () => {
+            const email = document.getElementById("notify-email").value.trim();
+            if (!email || !email.includes("@")) {
+              alert("Please enter a valid email address.");
+              return;
+            }
+            setField("email", email);
+            // Submit again to Google Form with email
+            submitToGoogleForm({ ...survey, email }, () => {
+              document.getElementById("notify-btn").textContent = "Saved!";
+              document.getElementById("notify-btn").disabled = true;
+            });
+          };
+        }
+      }
+
+      // Set survey and re-render
+      function setSurvey(newSurvey) {
+        survey = newSurvey;
+        saveSurvey(survey);
+      }
+      // Set step and re-render
+      function setStep(newStep) {
+        survey.currentStep = newStep;
+        saveSurvey(survey);
+        step = newStep;
+        render();
+      }
+      // Set AI summary and re-render
+      function setAiSummary(summary) {
+        aiSummary = summary;
+        setField("aiSummary", summary);
+      }
+
+      // Google Form POST
+      function submitToGoogleForm(survey, cb) {
+        // Map survey fields to Google Form entry IDs
+        // Replace these with your actual Google Form entry IDs
+        const entry = {
+          "entry.timestamp": new Date().toISOString(),
+          "entry.role": survey.role,
+          "entry.name": survey.name,
+          "entry.task1_result": JSON.stringify(survey.tasks.task1),
+          "entry.task2_result": JSON.stringify(survey.tasks.task2),
+          "entry.task3_result": JSON.stringify(survey.tasks.task3),
+          "entry.rating_3d": survey.ratings.viewer,
+          "entry.rating_energy": survey.ratings.energy,
+          "entry.rating_solar": survey.ratings.solar,
+          "entry.rating_iaq": survey.ratings.iaq,
+          "entry.rating_faults": survey.ratings.faults,
+          "entry.rating_scenarios": survey.ratings.scenarios,
+          "entry.rating_forecast": survey.ratings.forecast,
+          "entry.rating_roles": survey.ratings.roles,
+          "entry.most_useful_feature": survey.mostUseful,
+          "entry.needs_improvement_feature": survey.needsWork,
+          "entry.overall_rating": survey.overall,
+          "entry.what_worked": survey.whatWorked,
+          "entry.what_needed": survey.whatNeeded,
+          "entry.would_use": survey.wouldUse,
+          "entry.other_comments": survey.other,
+          "entry.ai_summary": survey.aiSummary,
+          "entry.email": survey.email
+        };
+        // Build form data
+        const formData = new URLSearchParams();
+        for (const k in entry) formData.append(k, entry[k]);
+        fetch(CONFIG.GOOGLE_FORM_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: formData.toString()
+        }).then(() => cb && cb());
+      }
+
+      // Initial render
+      render();
+    }
+
+    // Admin dashboard
+    function adminDashboard() {
+      // Password modal
+      if (!sessionStorage.getItem("admin_auth")) {
+        showPasswordModal();
+        return;
+      }
+      // Fetch CSV
+      fetch(CONFIG.SHEET_CSV_URL)
+        .then(r => r.text())
+        .then(csv => {
+          // Parse CSV
+          const rows = csv.trim().split("\n").map(r => r.split(","));
+          const headers = rows[0];
+          const data = rows.slice(1).map(r => {
+            const obj = {};
+            headers.forEach((h,i) => obj[h] = r[i]);
+            return obj;
+          });
+          // Compute stats
+          const total = data.length;
+          const avgOverall = (data.reduce((a,b)=>a+parseInt(b["entry.overall_rating"]||0),0)/total).toFixed(2);
+          // Role breakdown
+          const roleCounts = {};
+          ROLES.forEach(r => roleCounts[r.key]=0);
+          data.forEach(d => {
+            if (roleCounts[d["entry.role"]]) roleCounts[d["entry.role"]]++;
+          });
+          // Feature ratings
+          const featureStats = FEATURES.map(f => {
+            const vals = data.map(d => parseInt(d[`entry.rating_${f.key}`]||0)).filter(v=>v>0);
+            return {
+              key: f.key,
+              title: f.title,
+              avg: vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : "—",
+              count: vals.length
+            };
+          }).sort((a,b)=>parseFloat(b.avg)-parseFloat(a.avg));
+          // Task completion
+          const taskRates = [1,2,3].map(i => {
+            const easy = data.filter(d => (d[`entry.task${i}_result`]||"").includes('"completed":"easy"')).length;
+            return { task: i, pct: total ? Math.round(easy/total*100) : 0 };
+          });
+          // Recent AI summaries
+          const summaries = data.slice(-5).map(d => ({
+            role: d["entry.role"],
+            summary: d["entry.ai_summary"]
+          }));
+          // Raw table
+          // Render
+          document.body.className = "admin-bg";
+          document.body.innerHTML = `
+            <div class="admin-surface">
+              <div class="admin-heading">Gate Sofia Digital Twin — Validation Results</div>
+              <div style="margin-bottom:12px;">Total responses: <b>${total}</b> &nbsp;|&nbsp; Average overall rating: <b>${avgOverall}/5</b></div>
+              <div style="margin-bottom:8px;font-weight:500;">Role breakdown</div>
+              <div class="admin-bar-chart">
+                ${ROLES.map(r => `
+                  <div class="admin-bar" style="height:${roleCounts[r.key]*8+18}px;">
+                    ${roleCounts[r.key]}
+                    <div class="admin-bar-label">${r.title.split(" ")[0]}</div>
+                  </div>
+                `).join("")}
+              </div>
+              <div style="margin-bottom:8px;font-weight:500;">Feature ratings</div>
+              <table class="admin-table">
+                <tr>
+                  <th>Feature</th><th>Avg rating</th><th># rated</th>
+                </tr>
+                ${featureStats.map(f => `
+                  <tr>
+                    <td>${f.title}</td>
+                    <td>${f.avg}</td>
+                    <td>${f.count}</td>
+                  </tr>
+                `).join("")}
+              </table>
+              <<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gate Sofia Digital Twin Validation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #0a0f1a;
+      --surface: #0f1926;
+      --border: rgba(125,211,252,0.15);
+      --accent: #7DD3FC;
+      --green: #4ADE80;
+      --text: #F1F5F9;
+      --muted: #64748B;
+      --star-empty: #334155;
+      --star-filled: #FBBF24;
+      --step-bar: #7DD3FC;
+      --admin-bar: #38bdf8;
+      --admin-bg: #101828;
+    }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    #app {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 32px 0 32px 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    @media (max-width: 700px) {
+      #app { padding: 16px 0; }
+    }
+    .surface {
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: 0 2px 16px 0 rgba(0,0,0,0.08);
+      border: 1px solid var(--border);
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 540px;
+      margin: 0 auto;
+      animation: stepIn 0.3s ease;
+    }
+    @media (max-width: 600px) {
+      .surface { padding: 18px 6vw; }
+    }
+    @keyframes stepIn {
+      from { opacity: 0; transform: translateY(12px);}
+      to   { opacity: 1; transform: translateY(0);}
+    }
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+      margin-top: 0;
+    }
+    .logo-area .logo {
+      font-size: 2.1rem;
+      margin-right: 8px;
+    }
+    .logo-area .brand {
+      font-weight: 600;
+      font-size: 1.25rem;
+      letter-spacing: 0.01em;
+    }
+    .logo-area .subtitle {
+      font-size: 1.05rem;
+      color: var(--accent);
+      font-weight: 400;
+      margin-left: 2px;
+      opacity: 0.85;
+    }
+    .progress-bar-wrap {
+      width: 100%;
+      margin-bottom: 8px;
+      margin-top: 0;
+      height: 4px;
+      background: rgba(125,211,252,0.07);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 4px;
+      background: var(--step-bar);
+      width: 0%;
+      transition: width 0.4s cubic-bezier(.4,1.2,.4,1);
+    }
+    .step-indicator {
+      font-size: 11px;
+      color: #475569;
+      margin-bottom: 18px;
+      margin-top: 2px;
+      letter-spacing: 0.04em;
+      text-align: left;
+    }
+    .main-heading {
+      font-size: 1.7rem;
+      font-weight: 500;
+      margin-bottom: 8px;
+      margin-top: 0;
+      letter-spacing: 0.01em;
+    }
+    .subheading {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 18px;
+      margin-top: 0;
+      font-weight: 400;
+    }
+    .bullets {
+      margin: 18px 0 24px 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    .bullets li {
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .bullets li::before {
+      content: "•";
+      color: var(--accent);
+      font-size: 1.2em;
+      margin-right: 8px;
+      line-height: 1.2;
+    }
+    .button, button, input[type="submit"] {
+      background: var(--accent);
+      color: #0a0f1a;
+      border: none;
+      border-radius: 8px;
+      padding: 13px 0;
+      font-size: 1.13rem;
+      font-weight: 500;
+      width: 100%;
+      margin-top: 18px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+      box-shadow: 0 1px 4px 0 rgba(125,211,252,0.07);
+      outline: none;
+    }
+    .button:disabled, button:disabled {
+      background: #334155;
+      color: #64748B;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .button:not(:disabled):hover, button:not(:disabled):hover {
+      background: #38bdf8;
+      transform: translateY(-1px) scale(1.01);
+    }
+    .footer-note {
+      font-size: 13px;
+      color: #64748B;
+      margin-top: 24px;
+      text-align: center;
+    }
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 600px) {
+      .role-grid { grid-template-columns: 1fr; }
+    }
+    .role-card {
+      background: rgba(15,23,42,0.8);
+      border: 1px solid rgba(125,211,252,0.12);
+      border-radius: 12px;
+      padding: 16px 14px;
+      cursor: pointer;
+      transition: border 0.15s, background 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 80px;
+      font-size: 1.08rem;
+      position: relative;
+    }
+    .role-card.selected {
+      border: 2px solid var(--accent);
+      background: rgba(125,211,252,0.08);
+    }
+    .role-card .role-emoji {
+      font-size: 1.5em;
+      margin-bottom: 2px;
+    }
+    .role-card .role-title {
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .role-card .role-desc {
+      font-size: 0.98em;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .input-row {
+      margin: 12px 0 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .input-row input[type="text"], .input-row input[type="email"] {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 14px;
+      margin-top: 2px;
+      outline: none;
+      transition: border 0.13s;
+    }
+    .input-row input[type="text"]:focus, .input-row input[type="email"]:focus {
+      border: 1.5px solid var(--accent);
+    }
+    .gallery {
+      width: 100%;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .gallery-img {
+      width: 100%;
+      max-width: 420px;
+      height: 240px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid rgba(125,211,252,0.2);
+      background: #1e293b;
+      margin-bottom: 8px;
+    }
+    .gallery-caption {
+      font-size: 1.01em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .gallery-arrows {
+      display: flex;
+      gap: 18px;
+      margin-bottom: 8px;
+    }
+    .gallery-arrow {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 1.7em;
+      cursor: pointer;
+      padding: 0 8px;
+      transition: color 0.13s;
+    }
+    .gallery-arrow:disabled {
+      color: #334155;
+      cursor: not-allowed;
+    }
+    .highlight-cards {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 18px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .highlight-card {
+      background: rgba(125,211,252,0.06);
+      border: 1px solid rgba(125,211,252,0.13);
+      border-radius: 12px;
+      padding: 16px 18px;
+      min-width: 170px;
+      flex: 0 0 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .highlight-card .icon {
+      font-size: 1.5em;
+      margin-bottom: 2px;
+    }
+    .highlight-card .title {
+      font-weight: 500;
+      font-size: 1.08em;
+      margin-bottom: 2px;
+    }
+    .highlight-card .desc {
+      font-size: 0.98em;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .task-card {
+      background: rgba(125,211,252,0.06);
+      border: 1px solid rgba(125,211,252,0.13);
+      border-radius: 12px;
+      padding: 18px 18px 12px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      animation: stepIn 0.3s;
+    }
+    .task-progress {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-align: right;
+    }
+    .task-heading {
+      font-weight: 500;
+      font-size: 1.13em;
+      margin-bottom: 2px;
+    }
+    .task-instructions {
+      font-size: 1.01em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .task-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .task-btn {
+      flex: 1;
+      background: #1e293b;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      padding: 10px 0;
+      font-size: 1.05em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.13s, border 0.13s;
+    }
+    .task-btn.selected, .task-btn:focus {
+      border: 2px solid var(--accent);
+      background: rgba(125,211,252,0.08);
+      color: var(--accent);
+    }
+    .task-btn:disabled {
+      color: #64748B;
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      cursor: not-allowed;
+    }
+    .radio-row {
+      display: flex;
+      gap: 18px;
+      margin-bottom: 8px;
+      margin-top: 2px;
+    }
+    .radio-label {
+      font-size: 1.01em;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .star-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    .star {
+      font-size: 24px;
+      color: var(--star-empty);
+      cursor: pointer;
+      transition: color 0.1s;
+      user-select: none;
+    }
+    .star.filled {
+      color: var(--star-filled);
+      text-shadow: 0 1px 4px #fbbf2422;
+    }
+    .star-row .star:focus {
+      outline: 2px solid var(--accent);
+    }
+    .feature-card {
+      background: rgba(125,211,252,0.06);
+      border: 1px solid rgba(125,211,252,0.13);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .feature-title {
+      font-weight: 500;
+      font-size: 1.08em;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .feature-desc {
+      font-size: 0.98em;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .dropdown {
+      width: 100%;
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 1.05em;
+      margin-bottom: 12px;
+      margin-top: 2px;
+      outline: none;
+      transition: border 0.13s;
+    }
+    .dropdown:focus {
+      border: 1.5px solid var(--accent);
+    }
+    .emoji-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+      margin-top: 2px;
+      justify-content: center;
+    }
+    .emoji-btn {
+      font-size: 2.1em;
+      background: none;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border 0.13s, background 0.13s;
+      padding: 2px 8px;
+      outline: none;
+    }
+    .emoji-btn.selected {
+      border: 2px solid var(--accent);
+      background: rgba(125,211,252,0.08);
+    }
+    .emoji-label {
+      text-align: center;
+      font-size: 0.98em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      min-height: 1.5em;
+    }
+    textarea {
+      width: 100%;
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 1.05em;
+      margin-bottom: 12px;
+      margin-top: 2px;
+      outline: none;
+      resize: vertical;
+      min-height: 48px;
+      transition: border 0.13s;
+    }
+    textarea:focus {
+      border: 1.5px solid var(--accent);
+    }
+    .ai-summary-card {
+      background: rgba(125,211,252,0.06);
+      border: 1px solid rgba(125,211,252,0.2);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      margin-top: 8px;
+    }
+    .ai-summary-title {
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .ai-summary-text {
+      font-size: 14px;
+      color: #CBD5E1;
+      line-height: 1.7;
+    }
+    .thankyou-check {
+      font-size: 48px;
+      color: var(--green);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .thankyou-heading {
+      font-size: 1.5rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .thankyou-sub {
+      font-size: 1.08rem;
+      color: var(--muted);
+      margin-bottom: 18px;
+      text-align: center;
+    }
+    .thankyou-stats {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .thankyou-stat {
+      font-size: 1.13em;
+      color: var(--accent);
+      font-weight: 500;
+      text-align: center;
+    }
+    .share-btn {
+      background: rgba(125,211,252,0.1);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 1.08em;
+      font-weight: 500;
+      margin: 0 auto 18px auto;
+      display: block;
+      width: fit-content;
+      cursor: pointer;
+      transition: background 0.13s, border 0.13s;
+    }
+    .share-btn:hover {
+      background: rgba(125,211,252,0.18);
+      border: 1.5px solid #38bdf8;
+      color: #38bdf8;
+    }
+    .notify-row {
+      margin-top: 18px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+    .notify-row input[type="email"] {
+      width: 220px;
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 1em;
+      outline: none;
+      transition: border 0.13s;
+    }
+    .notify-row button {
+      background: var(--green);
+      color: #0a0f1a;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.13s;
+    }
+    .notify-row button:disabled {
+      background: #334155;
+      color: #64748B;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .resume-banner {
+      background: rgba(125,211,252,0.09);
+      border: 1px solid rgba(125,211,252,0.18);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      animation: stepIn 0.3s;
+    }
+    .resume-banner .resume-btn {
+      background: var(--accent);
+      color: #0a0f1a;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 1em;
+      font-weight: 500;
+      margin-right: 8px;
+      cursor: pointer;
+      transition: background 0.13s;
+    }
+    .resume-banner .resume-btn:hover {
+      background: #38bdf8;
+    }
+    .resume-banner .startover-btn {
+      background: none;
+      color: var(--muted);
+      border: none;
+      font-size: 1em;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-left: 8px;
+      margin-right: 0;
+      padding: 0;
+    }
+    .back-btn {
+      position: absolute;
+      left: 0;
+      top: 0;
+      margin-top: 12px;
+      margin-left: 8px;
+      background: none;
+      color: var(--accent);
+      border: none;
+      font-size: 1.1em;
+      font-weight: 500;
+      cursor: pointer;
+      z-index: 10;
+      transition: color 0.13s;
+    }
+    .back-btn:disabled {
+      color: #334155;
+      cursor: not-allowed;
+    }
+    .loading-dots {
+      display: inline-block;
+      font-size: 1.2em;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-left: 4px;
+      animation: loadingDots 1.2s infinite steps(3);
+    }
+    @keyframes loadingDots {
+      0% { content: ""; }
+      33% { content: "."; }
+      66% { content: ".."; }
+      100% { content: "..."; }
+    }
+    /* Admin styles */
+    .admin-bg {
+      background: var(--admin-bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+    }
+    .admin-surface {
+      background: #172033;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px 0 rgba(0,0,0,0.08);
+      border: 1px solid var(--admin-bar);
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 900px;
+      margin: 32px auto;
+    }
+    .admin-heading {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--admin-bar);
+      margin-bottom: 12px;
+    }
+    .admin-bar-chart {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      margin-bottom: 18px;
+      margin-top: 8px;
+    }
+    .admin-bar {
+      background: var(--admin-bar);
+      border-radius: 4px 4px 0 0;
+      min-width: 38px;
+      text-align: center;
+      color: #fff;
+      font-size: 0.98em;
+      font-weight: 500;
+      margin-right: 2px;
+      transition: height 0.4s;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .admin-bar-label {
+      font-size: 0.93em;
+      color: #CBD5E1;
+      margin-top: 4px;
+      font-weight: 400;
+    }
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 18px;
+      font-size: 0.98em;
+    }
+    .admin-table th, .admin-table td {
+      border: 1px solid #334155;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    .admin-table th {
+      background: #1e293b;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .admin-table td {
+      background: #172033;
+      color: #CBD5E1;
+    }
+    .admin-raw-table {
+      max-height: 260px;
+      overflow-y: auto;
+      display: block;
+      margin-bottom: 18px;
+    }
+    .admin-ai-summary {
+      background: rgba(125,211,252,0.06);
+      border: 1px solid rgba(125,211,252,0.2);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      margin-top: 8px;
+    }
+    .admin-ai-role {
+      font-size: 0.98em;
+      color: var(--accent);
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .admin-download-btn {
+      background: var(--accent);
+      color: #0a0f1a;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 1em;
+      font-weight: 500;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: background 0.13s;
+    }
+    .admin-download-btn:hover {
+      background: #38bdf8;
+    }
+    .admin-password-modal {
+      background: rgba(10,15,26,0.98);
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .admin-password-box {
+      background: #172033;
+      border-radius: 12px;
+      border: 1.5px solid var(--admin-bar);
+      padding: 32px 28px;
+      max-width: 340px;
+      width: 100%;
+      box-shadow: 0 2px 16px 0 rgba(0,0,0,0.13);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .admin-password-box input[type="password"] {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 1.1em;
+      outline: none;
+      margin-bottom: 8px;
+      width: 100%;
+    }
+    .admin-password-box button {
+      background: var(--admin-bar);
+      color: #0a0f1a;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.13s;
+      width: 100%;
+    }
+    .admin-password-box button:disabled {
+      background: #334155;
+      color: #64748B;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .admin-password-error {
+      color: #f87171;
+      font-size: 0.98em;
+      margin-bottom: 4px;
+    }
+    /* Hide scrollbars for highlight cards on mobile */
+    .highlight-cards::-webkit-scrollbar { display: none; }
+    .highlight-cards { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    // ── CONFIG ─────────────────────────────────────
+    // Replace these before deploying
+    const CONFIG = {
+      DIGITAL_TWIN_URL:  "https://your-app.vercel.app",
+      GOOGLE_FORM_URL:   "YOUR_GOOGLE_FORM_URL_HERE",
+      SHEET_CSV_URL:     "YOUR_PUBLISHED_CSV_URL",
+      ADMIN_PASSWORD:    "gate2026"
+    };
+    // ── END CONFIG ────────────────────────────────
+
+    // Survey state
+    const defaultSurvey = () => ({
+      startedAt:    new Date().toISOString(),
+      role:         null,
+      name:         "",
+      currentStep:  1,
+      totalSteps:   8,
+      tasks: {
+        task1: { completed: null, time: null },
+        task2: { completed: null, time: null },
+        task3: { completed: null, time: null, scenario: null },
+      },
+      ratings: {
+        viewer:    0,
+        energy:    0,
+        solar:     0,
+        iaq:       0,
+        faults:    0,
+        scenarios: 0,
+        forecast:  0,
+        roles:     0,
+      },
+      mostUseful:   null,
+      needsWork:    null,
+      overall:      0,
+      whatWorked:   "",
+      whatNeeded:   "",
+      wouldUse:     null,
+      other:        "",
+      aiSummary:    "",
+      email:        "",
+    });
+
+    // LocalStorage helpers
+    function saveSurvey(survey) {
+      localStorage.setItem("gate_survey", JSON.stringify(survey));
+    }
+    function loadSurvey() {
+      try {
+        const s = localStorage.getItem("gate_survey");
+        if (!s) return null;
+        return JSON.parse(s);
+      } catch { return null; }
+    }
+    function clearSurvey() {
+      localStorage.removeItem("gate_survey");
+    }
+
+    // Step titles for progress bar
+    const STEP_TITLES = [
+      "Welcome",
+      "Role Selection",
+      "Guided Tour",
+      "Task Testing",
+      "Feature Ratings",
+      "Feedback",
+      "AI Summary",
+      "Thank You"
+    ];
+
+    // Role options
+    const ROLES = [
+      {
+        key: "director",
+        emoji: "🏢",
+        title: "Building Director / Management",
+        desc: "Strategic decisions, costs, sustainability"
+      },
+      {
+        key: "facilities",
+        emoji: "🔧",
+        title: "Facilities Manager",
+        desc: "Day-to-day operations, maintenance, equipment"
+      },
+      {
+        key: "sustainability",
+        emoji: "🌿",
+        title: "Sustainability Officer",
+        desc: "Carbon reporting, energy targets, green goals"
+      },
+      {
+        key: "it",
+        emoji: "💻",
+        title: "IT Staff",
+        desc: "Systems, servers, infrastructure"
+      },
+      {
+        key: "worker",
+        emoji: "👤",
+        title: "Office Worker",
+        desc: "Daily occupant, comfort and environment"
+      },
+      {
+        key: "visitor",
+        emoji: "🌍",
+        title: "External Visitor / Stakeholder",
+        desc: "Visiting the building or reviewing the project"
+      }
+    ];
+
+    // Feature ratings
+    const FEATURES = [
+      { key: "viewer",    emoji: "🏢", title: "3D Building Viewer", desc: "Navigating the building in 3D" },
+      { key: "energy",    emoji: "⚡", title: "Energy Monitoring", desc: "Seeing circuit-level power data" },
+      { key: "solar",     emoji: "☀️", title: "Solar & Battery", desc: "Tracking solar generation and battery" },
+      { key: "iaq",       emoji: "🌡", title: "Room Air Quality", desc: "CO₂, temperature and humidity by room" },
+      { key: "faults",    emoji: "🔍", title: "Fault Detection", desc: "Automatic alerts when something is wrong" },
+      { key: "scenarios", emoji: "🎯", title: "Scenarios", desc: "What-if calculations for changes" },
+      { key: "forecast",  emoji: "🔮", title: "Forecast", desc: "7-day energy and cost predictions" },
+      { key: "roles",     emoji: "👤", title: "Role Dashboard", desc: "Personalised view for your role" }
+    ];
+
+    // Screenshot gallery for fallback
+    const GALLERY = [
+      { src: "https://i.imgur.com/1.png", caption: "3D building overview" },
+      { src: "https://i.imgur.com/2.png", caption: "Energy monitoring by circuit" },
+      { src: "https://i.imgur.com/3.png", caption: "Solar generation and battery" },
+      { src: "https://i.imgur.com/4.png", caption: "Fault detection alerts" }
+    ];
+
+    // Highlight cards for tour
+    const HIGHLIGHTS = [
+      { icon: "🏢", title: "Live 3D Building", desc: "Navigate the building in 3D and see real-time data overlaid on each room" },
+      { icon: "⚡", title: "Energy Monitoring", desc: "Track 16 electrical circuits with 48 hours of replay data" },
+      { icon: "🔍", title: "Fault Detection", desc: "19 automated rules detect problems before they become expensive" }
+    ];
+
+    // Task definitions
+    function getTask2(role) {
+      if (role === "director" || role === "sustainability") {
+        return {
+          heading: "Find the solar savings for today",
+          instructions: "1. Open the Replay panel\n2. Click the Solar tab (☀️)\n3. Find how much solar saved today in €"
+        };
+      }
+      if (role === "facilities" || role === "it") {
+        return {
+          heading: "Find an active fault",
+          instructions: "1. Look for the fault detection button (top left of the screen)\n2. Open the Fault panel\n3. Find what the most serious fault is and what action is recommended"
+        };
+      }
+      if (role === "worker") {
+        return {
+          heading: "Check your room's air quality",
+          instructions: "1. Open the Replay panel\n2. Click the IAQ Rooms tab (🌡)\n3. Find the CO₂ level for any room"
+        };
+      }
+      // visitor
+      return {
+        heading: "Find out what % solar powers the building",
+        instructions: "1. Open the Replay panel\n2. Click the Solar tab (☀️)\n3. Find the solar coverage percentage"
+      };
+    }
+
+    // Emoji rating labels
+    const EMOJI_LABELS = [
+      "Needs a lot of work",
+      "Below expectations",
+      "Meets expectations",
+      "Exceeds expectations",
+      "Exceptional"
+    ];
+
+    // Would use options
+    const WOULD_USE = [
+      "Yes, regularly",
+      "Yes, occasionally",
+      "Probably not",
+      "No"
+    ];
+
+    // Dropdown options for most useful/needs improvement
+    const FEATURE_DROPDOWN = [
+      "3D Building Viewer",
+      "Energy Monitoring",
+      "Solar & Battery",
+      "Room Air Quality",
+      "Fault Detection",
+      "Scenarios",
+      "Forecast",
+      "Role Dashboard"
+    ];
+
+    // Add "Other" for needs improvement
+    const FEATURE_DROPDOWN_NEEDS = [...FEATURE_DROPDOWN, "Other"];
+
+    // Step rendering
+    function renderStep(survey, setSurvey, step, setStep, aiLoading, aiError, aiSummary, setAiSummary, adminMode) {
+      // Helper: update survey and save
+      function updateSurvey(upd) {
+        const next = { ...survey, ...upd };
+        saveSurvey(next);
+        setSurvey(next);
+      }
+      // Helper: go to next step
+      function nextStep() {
+        if (step < survey.totalSteps) setStep(step + 1);
+      }
+      // Helper: go to prev step
+      function prevStep() {
+        if (step > 1) setStep(step - 1);
+      }
+      // Helper: set field
+      function setField(field, value) {
+        updateSurvey({ [field]: value });
+      }
+      // Helper: set nested field
+      function setNested(obj, key, value) {
+        updateSurvey({ [obj]: { ...survey[obj], [key]: value } });
+      }
+      // Helper: set task field
+      function setTask(task, field, value) {
+        updateSurvey({ tasks: { ...survey.tasks, [task]: { ...survey.tasks[task], [field]: value } } });
+      }
+      // Helper: set rating
+      function setRating(key, value) {
+        updateSurvey({ ratings: { ...survey.ratings, [key]: value } });
+      }
+
+      // Step 1: Welcome
+      if (step === 1) {
+        return `
+          <div class="surface" style="position:relative;">
+            <div class="logo-area">
+              <span class="logo">🏢</span>
+              <span class="brand">Gate Sofia</span>
+              <span class="subtitle">Digital Twin Validation</span>
+            </div>
+            <div class="main-heading">Help us improve the Gate Sofia Digital Twin</div>
+            <div class="subheading">This takes 8-10 minutes. Your feedback directly shapes how the system develops.</div>
+            <ul class="bullets">
+              <li>A short tour of the application</li>
+              <li>3 simple tasks to try</li>
+              <li>A few questions about your experience</li>
+            </ul>
+            <button class="button" id="start-btn">Get started &rarr;</button>
+            <div class="footer-note">Your responses are anonymous unless you choose to share your name.</div>
+          </div>
+        `;
+      }
+
+      // Step 2: Role selection
+      if (step === 2) {
+        return `
+          <button class="back-btn" id="back-btn">&larr; Back</button>
+          <div class="surface" style="position:relative;">
+            <div class="main-heading">First, tell us your role</div>
+            <div class="subheading">This helps us understand your perspective</div>
+            <div class="role-grid">
+              ${ROLES.map(r => `
+                <div class="role-card${survey.role === r.key ? " selected" : ""}" data-role="${r.key}">
+                  <div class="role-emoji">${r.emoji}</div>
+                  <div class="role-title">${r.title}</div>
+                  <div class="role-desc">${r.desc}</div>
+                </div>
+              `).join("")}
+            </div>
+            <div class="input-row">
+              <input type="text" id="name-input" placeholder="Your name (optional)" value="${survey.name || ""}" style="font-size:14px;">
+            </div>
+            <button class="button" id="role-continue-btn"${survey.role ? "" : " disabled"}>Continue &rarr;</button>
+          </div>
+        `;
+      }
+
+      // Step 3: Guided tour
+      if (step === 3) {
+        // Try iframe, fallback to gallery
+        let iframeHtml = `
+          <iframe src="${CONFIG.DIGITAL_TWIN_URL}" style="width:100%;height:320px;max-height:480px;border-radius:12px;border:1px solid rgba(125,211,252,0.2);background:#1e293b;" title="Gate Sofia Digital Twin" id="twin-iframe"></iframe>
+          <div id="iframe-fallback" style="display:none;">
+            <div class="gallery">
+              <img src="${GALLERY[0].src}" class="gallery-img" id="gallery-img">
+              <div class="gallery-caption" id="gallery-caption">${GALLERY[0].caption}</div>
+              <div class="gallery-arrows">
+                <button class="gallery-arrow" id="gallery-prev" disabled>&larr;</button>
+                <button class="gallery-arrow" id="gallery-next">&rarr;</button>
+              </div>
+            </div>
+          </div>
+        `;
+        return `
+          <button class="back-btn" id="back-btn">&larr; Back</button>
+          <div class="surface" style="position:relative;">
+            <div class="main-heading">Here's what the digital twin does</div>
+            <div class="subheading">Take 2 minutes to explore these features</div>
+            ${iframeHtml}
+            <div class="highlight-cards">
+              ${HIGHLIGHTS.map(h => `
+                <div class="highlight-card">
+                  <div class="icon">${h.icon}</div>
+                  <div class="title">${h.title}</div>
+                  <div class="desc">${h.desc}</div>
+                </div>
+              `).join("")}
+            </div>
+            <button class="button" id="tour-continue-btn">I've had a look — continue &rarr;</button>
+          </div>
+        `;
+      }
+
+      // Step 4: Task testing
+      if (step === 4) {
+        // Which task is active?
+        const taskNum = survey.tasks.task1.completed === null ? 1 :
+                        survey.tasks.task2.completed === null ? 2 : 3;
+        const taskProgress = `Task ${taskNum} of 3`;
+        let task;
+        if (taskNum === 1) {
+          task = {
+            heading: "Find today's energy cost",
+            instructions: "In the digital twin:\n1. Open the Replay panel (right side)\n2. Click the Energy tab\n3. Find the estimated cost figure"
+          };
+        } else if (taskNum === 2) {
+          task = getTask2(survey.role);
+        } else {
+          task = {
+            heading: "Find a 'what if' scenario relevant to you",
+            instructions: "1. Open the Replay panel\n2. Click the Scenarios tab (🎯)\n3. Find a scenario that interests you\n4. Try adjusting the slider if there is one"
+          };
+        }
+        // Task buttons
+        const completed = survey.tasks[`task${taskNum}`].completed;
+        const time = survey.tasks[`task${taskNum}`].time;
+        const scenario = survey.tasks.task3.scenario;
+        // Task 3 extra question
+        const scenarioQ = taskNum === 3 ? `
+          <div style="margin-top:8px;">
+            <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">Did the scenario result make sense to you?</div>
+            <div class="radio-row">
+              ${["Yes", "Mostly", "Not really"].map(opt => `
+                <label class="radio-label">
+                  <input type="radio" name="scenario-q" value="${opt}"${scenario === opt ? " checked" : ""}>
+                  ${opt}
+                </label>
+              `).join("")}
+            </div>
+          </div>
+        ` : "";
+        // Task buttons
+        const btns = [
+          { label: "✓ Yes, easily", val: "easy" },
+          { label: "~ Yes, with some difficulty", val: "hard" },
+          { label: "✗ No, I couldn't find it", val: "fail" }
+        ];
+        // Time radio
+        const times = ["Under 30s", "30s-1min", "Over 1 min"];
+        return `
+          <button class="back-btn" id="back-btn">&larr; Back</button>
+          <div class="surface" style="position:relative;">
+            <div class="main-heading">Now try these 3 tasks</div>
+            <div class="subheading">Open the digital twin in a new tab and try each task. Then come back and tell us how it went.</div>
+            <a href="${CONFIG.DIGITAL_TWIN_URL}" target="_blank" class="share-btn" style="margin-bottom:18px;">Open Gate Sofia Digital Twin &nearr;</a>
+            <div class="task-progress">${taskProgress}</div>
+            <div class="task-card">
+              <div class="task-heading">${task.heading}</div>
+              <div class="task-instructions" style="white-space:pre-line;">${task.instructions}</div>
+              <div class="task-buttons">
+                ${btns.map(b => `
+                  <button class="task-btn${completed === b.val ? " selected" : ""}" data-val="${b.val}">${b.label}</button>
+                `).join("")}
+              </div>
+              <div style="margin-top:8px;">
+                <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">How long did it take?</div>
+                <div class="radio-row">
+                  ${times.map(t => `
+                    <label class="radio-label">
+                      <input type="radio" name="time-radio" value="${t}"${time === t ? " checked" : ""}>
+                      ${t}
+                    </label>
+                  `).join("")}
+                </div>
+              </div>
+              ${scenarioQ}
+            </div>
+            <button class="button" id="task-next-btn"${completed && time && (taskNum !== 3 || scenario) ? "" : " disabled"}>${taskNum < 3 ? "Next task →" : "Continue to ratings →"}</button>
+          </div>
+        `;
+      }
+
+      // Step 5: Feature ratings
+      if (step === 5) {
+        return `
+          <button class="back-btn" id="back-btn">&larr; Back</button>
+          <div class="surface" style="position:relative;">
+            <div class="main-heading">Rate these features</div>
+            <div class="subheading">1 star = not useful, 5 stars = very useful</div>
+            ${FEATURES.map(f => `
+              <div class="feature-card">
+                <div class="feature-title">${f.emoji} ${f.title}</div>
+                <div class="feature-desc">${f.desc}</div>
+                <div class="star-row" data-key="${f.key}">
+                  ${[1,2,3,4,5].map(i => `
+                    <span class="star${survey.ratings[f.key] >= i ? " filled" : ""}" data-star="${i}" tabindex="0" aria-label="${i} star${i>1?"s":""}">${survey.ratings[f.key] >= i ? "★" : "☆"}</span>
+                  `).join("")}
+                </div>
+              </div>
+            `).join("")}
+            <div style="margin-top:18px;">
+              <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">Which feature would you use most often?</div>
+              <select class="dropdown" id="most-useful">
+                <option value="">Select...</option>
+                ${FEATURE_DROPDOWN.map(f => `
+                  <option value="${f}"${survey.mostUseful === f ? " selected" : ""}>${f}</option>
+                `).join("")}
+              </select>
+            </div>
+            <div style="margin-top:8px;">
+              <div style="font-size:1.01em;color:var(--muted);margin-bottom:4px;">Which feature needs the most improvement?</div>
+              <select class="dropdown" id="needs-work">
+                <option value="">Select...</option>
+                ${FEATURE_DROPDOWN_NEEDS.map(f => `
+                  <option value="${f}"${survey.needsWork === f ? " selected" : ""}>${f}</option>
+                `).join("")}
+              </select>
+            </div>
+            <button class="button" id="rati…

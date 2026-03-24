@@ -1,0 +1,9 @@
+[build]
+publish = "."
+functions = "netlify/functions"
+
+[[headers]]
+for = "/*"
+  [headers.values]
+  X-Frame-Options = "SAMEORIGIN"
+  Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.anthropic.com https://docs.google.com https://*.vercel.app"
