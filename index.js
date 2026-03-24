@@ -4,6 +4,8 @@ const CONFIG = {
   GOOGLE_FORM_URL:   "https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse", // Use the Google Form POST endpoint, ending in /formResponse
   SHEET_CSV_URL:     "https://docs.google.com/spreadsheets/d/e/YOUR_SHEET_ID/pub?output=csv", // Use the published Google Sheet CSV URL
   SUMMARY_ENDPOINT:  "/.netlify/functions/generate-summary",
+  RESPONSE_SAVE_ENDPOINT: "/.netlify/functions/save-response",
+  RESPONSE_LIST_ENDPOINT: "/.netlify/functions/list-responses",
   ADMIN_PASSWORD:    "gate2026"
 };
 
@@ -32,6 +34,41 @@ const FORM_FIELD_IDS = {
   aiSummary:  "entry.000000021",
   email:      "entry.000000022"
 };
+
+function isPlaceholderValue(value, token) {
+  return !value || String(value).includes(token);
+}
+
+function hasConfiguredGoogleForm() {
+  return !isPlaceholderValue(CONFIG.GOOGLE_FORM_URL, "YOUR_FORM_ID");
+}
+
+function hasConfiguredSheetCsv() {
+  return !isPlaceholderValue(CONFIG.SHEET_CSV_URL, "YOUR_SHEET_ID");
+}
+
+function buildExtraCommentsSummary() {
+  const featureNotes = Object.entries(survey.featureComments || {})
+    .filter(([, value]) => String(value || "").trim())
+    .map(([key, value]) => {
+      const featureTitle = FEATURES.find(feature => feature.key === key)?.title || key;
+      return `${featureTitle}: ${String(value).trim()}`;
+    });
+
+  const taskNotes = Object.entries(survey.tasks || {})
+    .filter(([, value]) => String(value?.note || "").trim())
+    .map(([key, value]) => {
+      const taskTitle = TASKS.find(task => task.key === key)?.heading
+        || (key === "task2" ? (TASK2_ROLE_MAP[survey.role]?.heading || "Task 2") : key);
+      return `${taskTitle}: ${String(value.note).trim()}`;
+    });
+
+  const combined = [...featureNotes, ...taskNotes];
+  if (!combined.length) return survey.other || "";
+
+  const extraBlock = `Additional comments: ${combined.join(" | ")}`;
+  return survey.other ? `${survey.other}\n${extraBlock}` : extraBlock;
+}
 
 //  CONSTANTS 
 const ROLES = [
@@ -220,6 +257,7 @@ function getInitialSurvey() {
 let survey = getInitialSurvey();
 let resumeBanner = false;
 const LS_KEY = "gate_survey";
+const RESPONSES_KEY = "gate_survey_responses";
 
 //  LOCAL STORAGE 
 function saveSurvey() {
@@ -238,6 +276,71 @@ function loadSurvey() {
 }
 function clearSurvey() {
   localStorage.removeItem(LS_KEY);
+}
+
+function getSurveySubmissionRecord() {
+  return {
+    started_at: survey.startedAt,
+    role: survey.role || "",
+    name: survey.name || "",
+    task1_result: JSON.stringify(survey.tasks.task1 || {}),
+    task2_result: JSON.stringify(survey.tasks.task2 || {}),
+    task3_result: JSON.stringify(survey.tasks.task3 || {}),
+    rating_viewer: survey.ratings.viewer || 0,
+    rating_energy: survey.ratings.energy || 0,
+    rating_solar: survey.ratings.solar || 0,
+    rating_iaq: survey.ratings.iaq || 0,
+    rating_faults: survey.ratings.faults || 0,
+    rating_scenarios: survey.ratings.scenarios || 0,
+    rating_forecast: survey.ratings.forecast || 0,
+    rating_roles: survey.ratings.roles || 0,
+    most_useful: survey.mostUseful || "",
+    needs_work: survey.needsWork || "",
+    overall_rating: survey.overall || 0,
+    what_worked: survey.whatWorked || "",
+    what_needed: survey.whatNeeded || "",
+    would_use: survey.wouldUse ?? "",
+    other_comments: buildExtraCommentsSummary(),
+    ai_summary: survey.aiSummary || "",
+    email: survey.email || ""
+  };
+}
+
+function loadLocalResponses() {
+  const raw = localStorage.getItem(RESPONSES_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalSubmission() {
+  const rows = loadLocalResponses();
+  const record = getSurveySubmissionRecord();
+  const existingIndex = rows.findIndex(row => row.started_at === record.started_at);
+  if (existingIndex >= 0) rows[existingIndex] = record;
+  else rows.push(record);
+  localStorage.setItem(RESPONSES_KEY, JSON.stringify(rows));
+}
+
+async function saveRemoteSubmission() {
+  const response = await fetch(CONFIG.RESPONSE_SAVE_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(getSurveySubmissionRecord())
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Save response failed with ${response.status}`);
+  }
+
+  return response.json().catch(() => ({}));
 }
 
 //  STEP NAVIGATION 
@@ -953,6 +1056,10 @@ function renderFeedback() {
 function renderThankYou() {
   // Submit to Google Form once
   if (!window._submitted) {
+    saveLocalSubmission();
+    saveRemoteSubmission().catch(error => {
+      console.warn("Remote response save failed, using local storage only.", error);
+    });
     submitToGoogleForm();
     window._submitted = true;
   }
@@ -976,6 +1083,10 @@ function renderThankYou() {
     generateAISummary().then(summary => {
       survey.aiSummary = summary;
       saveSurvey();
+      saveLocalSubmission();
+      saveRemoteSubmission().catch(error => {
+        console.warn("Remote response update failed, using local storage only.", error);
+      });
       render();
     });
     return div;
@@ -1138,6 +1249,10 @@ function animateCount(id, end) {
   step();
 }
 function submitToGoogleForm(emailOnly) {
+  if (!hasConfiguredGoogleForm()) {
+    console.warn("GOOGLE_FORM_URL is still using a placeholder value.");
+    return;
+  }
   // Compose form data
   const fd = new FormData();
   const appendField = (fieldId, value) => {
@@ -1165,10 +1280,240 @@ function submitToGoogleForm(emailOnly) {
   appendField(FORM_FIELD_IDS.whatWorked, survey.whatWorked);
   appendField(FORM_FIELD_IDS.whatNeeded, survey.whatNeeded);
   appendField(FORM_FIELD_IDS.wouldUse, survey.wouldUse);
-  appendField(FORM_FIELD_IDS.other, survey.other);
+  appendField(FORM_FIELD_IDS.other, buildExtraCommentsSummary());
   appendField(FORM_FIELD_IDS.aiSummary, survey.aiSummary);
   appendField(FORM_FIELD_IDS.email, survey.email);
   fetch(CONFIG.GOOGLE_FORM_URL, { method: "POST", mode: "no-cors", body: fd });
+}
+
+function ratingColor(avg) {
+  if (avg >= 4) return "#16a34a";
+  if (avg >= 3) return "#d97706";
+  return "#dc2626";
+}
+
+function buildBackendStatusMarkup(activeSource, responseCount) {
+  const statuses = [
+    {
+      label: "Supabase",
+      active: activeSource === "Supabase database",
+      state: activeSource === "Supabase database" ? "Active" : "Standby",
+      detail: activeSource === "Supabase database"
+        ? `${responseCount} shared response(s) loaded from the database`
+        : "Used when the Netlify response functions can reach Supabase"
+    },
+    {
+      label: "Local storage",
+      active: activeSource === "Local browser storage",
+      state: activeSource === "Local browser storage" ? "Active" : "Fallback",
+      detail: activeSource === "Local browser storage"
+        ? `${responseCount} response(s) available in this browser`
+        : "Used when no shared backend is available"
+    },
+    {
+      label: "Google Sheets",
+      active: activeSource === "Google Sheet CSV",
+      state: activeSource === "Google Sheet CSV" ? "Active" : (hasConfiguredSheetCsv() ? "Configured" : "Off"),
+      detail: hasConfiguredSheetCsv()
+        ? "Available as an alternate shared response source"
+        : "Not configured in this app"
+    }
+  ];
+
+  return `
+    <div class='admin-section'>
+      <div class='admin-section-header'>
+        Backend Status
+        <span class='section-badge'>${activeSource}</span>
+      </div>
+      <div class='admin-status-grid'>
+        ${statuses.map(item => `
+          <div class='admin-status-card ${item.active ? "active" : ""}'>
+            <div class='admin-status-top'>
+              <span class='admin-status-label'>${item.label}</span>
+              <span class='admin-status-pill ${item.active ? "active" : ""}'>${item.state}</span>
+            </div>
+            <div class='admin-status-detail'>${item.detail}</div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderAdminEmptyState(content, activeSource, title, detail, technicalNote = "") {
+  const statusMarkup = buildBackendStatusMarkup(activeSource, 0);
+  content.innerHTML = `
+    ${statusMarkup}
+    <div class='admin-no-data'>
+      <b>${title}</b><br>${detail}
+      ${technicalNote ? `<div class='admin-empty-note'>${technicalNote}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderAdminContent(content, data, sourceLabel) {
+  const total = data.length;
+  if (!total) {
+    renderAdminEmptyState(
+      content,
+      sourceLabel,
+      "No responses yet.",
+      sourceLabel === "Local browser storage"
+        ? "Complete the survey on this device/browser to populate the local admin dashboard."
+        : "The selected backend is connected, but there are no saved survey rows yet."
+    );
+    return;
+  }
+
+  const headers = Object.keys(data[0]);
+  const overallRatings = data.map(r=>+r["overall_rating"]||0).filter(Boolean);
+  const avgOverall = overallRatings.length ? (overallRatings.reduce((a,b)=>a+b,0)/overallRatings.length).toFixed(2) : "N/A";
+  const starsDisplay = avgOverall !== "N/A" ? `${Math.round(+avgOverall)}/5` : "";
+
+  const roleCounts = {};
+  ROLES.forEach(r=>roleCounts[r.key]=0);
+  data.forEach(r=>{ if (roleCounts[r["role"]]!==undefined) roleCounts[r["role"]]++; });
+  const uniqueRoles = ROLES.filter(r=>roleCounts[r.key]>0).length;
+
+  const withSummary = data.filter(r=>r["ai_summary"] && r["ai_summary"].trim().length > 10).length;
+
+  const featureStats = FEATURES.map(f=>{
+    const vals = data.map(r=>+r[`rating_${f.key}`]||0).filter(Boolean);
+    return {key:f.key,icon:f.icon,title:f.title,avg:vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0,count:vals.length};
+  }).sort((a,b)=>b.avg-a.avg);
+
+  const taskNames = ["Find today's energy cost","Find room air quality","Find a what-if scenario"];
+  const taskStats = [1,2,3].map(i=>{
+    const easy = data.filter(r=>{
+      try { return JSON.parse(r[`task${i}_result`]).completed===0; } catch { return false; }
+    }).length;
+    return Math.round(100*easy/total);
+  });
+
+  const summaries = data.slice(-5).reverse().map((r,i)=>({role:r["role"],summary:r["ai_summary"],idx:total-i}));
+  const maxRoleCount = Math.max(...ROLES.map(r=>roleCounts[r.key]), 1);
+  const validSummaries = summaries.filter(s=>s.summary && s.summary.trim().length>10);
+
+  let html = "";
+  html += `
+    <div class='admin-stats-grid'>
+      <div class='admin-stat-card'>
+        <div class='admin-stat-value'>${total}</div>
+        <div class='admin-stat-label'>Total Responses</div>
+        <div class='admin-stat-sub'>${withSummary} with AI summary</div>
+      </div>
+      <div class='admin-stat-card'>
+        <div class='admin-stat-value'>${avgOverall}</div>
+        <div class='admin-stat-label'>Avg Overall Rating</div>
+        <div class='admin-stat-sub' style='color:#f59e0b;letter-spacing:1px'>${starsDisplay}</div>
+      </div>
+      <div class='admin-stat-card'>
+        <div class='admin-stat-value'>${uniqueRoles}</div>
+        <div class='admin-stat-label'>Roles Represented</div>
+        <div class='admin-stat-sub'>out of ${ROLES.length} total roles</div>
+      </div>
+      <div class='admin-stat-card'>
+        <div class='admin-stat-value'>${taskStats[0]}%</div>
+        <div class='admin-stat-label'>Task 1 Easy Rate</div>
+        <div class='admin-stat-sub'>completed without difficulty</div>
+      </div>
+    </div>`;
+
+  html += buildBackendStatusMarkup(sourceLabel, total);
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      Participant Roles
+      <span class='section-badge'>${total} total</span>
+    </div>
+    <div class='admin-role-chart'>
+      ${ROLES.map(r=>{
+        const count = roleCounts[r.key];
+        const pct = total > 0 ? Math.round(100*count/total) : 0;
+        const barH = Math.max(4, Math.round(90 * count / maxRoleCount));
+        return `<div class='admin-role-col-wrap'>
+          <div class='admin-role-count'>${count}</div>
+          <div class='admin-role-pct'>${pct}%</div>
+          <div class='admin-role-bar' style='height:${barH}px' title='${r.title}: ${count} response(s)'></div>
+          <div class='admin-role-label'><br>${r.title.split(" ").slice(0,2).join(" ")}</div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>Feature Ratings
+      <span class='section-badge'>sorted by avg</span>
+    </div>
+    ${featureStats.map(f=>{
+      const barW = f.avg > 0 ? Math.round(100*f.avg/5) : 0;
+      const color = ratingColor(f.avg);
+      return `<div class='admin-feature-row'>
+        <span class='admin-feature-icon'>${f.icon}</span>
+        <span class='admin-feature-name'>${f.title}</span>
+        <div class='admin-feature-bar-wrap'>
+          <div class='admin-feature-bar-fill' style='width:${barW}%;background:${color}'></div>
+        </div>
+        <span class='admin-feature-score' style='color:${color}'>${f.avg>0?f.avg.toFixed(2):"-"}/5</span>
+        <span class='admin-feature-count'>${f.count} rated</span>
+      </div>`;
+    }).join("")}
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      <span class='section-icon'>Task</span> Task Completion - "Completed Easily" Rate
+    </div>
+    ${taskStats.map((pct,i)=>`
+      <div class='admin-task-row'>
+        <div class='admin-task-header'>
+          <span class='admin-task-label'>Task ${i+1}: ${taskNames[i]||""}</span>
+          <span class='admin-task-pct'>${pct}%</span>
+        </div>
+        <div class='admin-task-progress'>
+          <div class='admin-task-progress-fill' style='width:${pct}%'></div>
+        </div>
+        <div class='admin-task-desc'>${data.filter(r=>{ try{return JSON.parse(r[`task${i+1}_result`]).completed===0;}catch{return false;} }).length} out of ${total} respondents completed this easily</div>
+      </div>
+    `).join("")}
+  </div>`;
+
+  if (validSummaries.length) {
+    html += `<div class='admin-section'>
+      <div class='admin-section-header'>
+        <span class='section-icon'>AI</span> Recent AI-Generated Summaries
+        <span class='section-badge'>last ${validSummaries.length}</span>
+      </div>
+      ${validSummaries.map(s=>{
+        const role = ROLES.find(r=>r.key===s.role);
+        return `<div class='admin-summary-card'>
+          <div class='admin-summary-card-header'>
+            <span>${role?.icon || ""}</span>
+            <span class='admin-summary-role'>${role?role.title:s.role}</span>
+            <span class='admin-summary-idx'>Response #${s.idx}</span>
+          </div>
+          <div class='admin-summary-text'>${s.summary}</div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  }
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      <span class='section-icon'>Data</span> Raw Response Data
+      <span class='section-badge'>${total} rows</span>
+    </div>
+    <div style='overflow-x:auto;max-width:100%;'>
+      <table class='admin-table'>
+        <tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr>
+        ${data.map(r=>`<tr>${headers.map(h=>`<td>${r[h]||""}</td>`).join("")}</tr>`).join("")}
+      </table>
+    </div>
+    <button class='admin-download-btn' onclick='downloadCSV()'>Download CSV</button>
+  </div>`;
+
+  content.innerHTML = html;
 }
 
 //  ADMIN DASHBOARD 
@@ -1184,190 +1529,80 @@ function renderAdmin(app) {
     </div>
     <div id='admin-content'><div class='admin-no-data'>Loading responses...</div></div>
   `;
-  // Fetch CSV
-  fetch(CONFIG.SHEET_CSV_URL).then(r=>r.text()).then(csv=>{
-    const content = document.getElementById('admin-content');
-    const rows = csv.split(/\r?\n/).filter(Boolean).map(r=>r.split(","));
-    if (rows.length < 2) {
-      content.innerHTML = `<div class='admin-no-data'><b>No responses yet.</b><br>Share the survey link to start collecting data.</div>`;
+
+  const content = document.getElementById('admin-content');
+  if (!content) return;
+
+  fetch(CONFIG.RESPONSE_LIST_ENDPOINT).then(async response => {
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `List responses failed with ${response.status}`);
+    }
+    return response.json();
+  }).then(payload => {
+    const rows = Array.isArray(payload?.responses) ? payload.responses : [];
+    renderAdminContent(content, rows, "Supabase database");
+  }).catch(() => {
+    let remoteFailureNote = "Supabase database could not be reached, so the dashboard is using local browser storage instead.";
+    if (!hasConfiguredSheetCsv()) {
+      const localRows = loadLocalResponses();
+      if (localRows.length) {
+        renderAdminContent(content, localRows, "Local browser storage");
+      } else {
+        renderAdminEmptyState(
+          content,
+          "Local browser storage",
+          "No responses yet.",
+          "There are no locally saved responses in this browser.",
+          `${remoteFailureNote} If you expected Supabase data, check your Netlify environment variables and confirm SUPABASE_SERVICE_ROLE_KEY is the real service role key.`
+        );
+      }
       return;
     }
-    const headers = rows[0];
-    const data = rows.slice(1).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]])));
 
-    //  Compute stats 
-    const total = data.length;
-    const overallRatings = data.map(r=>+r["overall_rating"]||0).filter(Boolean);
-    const avgOverall = overallRatings.length ? (overallRatings.reduce((a,b)=>a+b,0)/overallRatings.length).toFixed(2) : "N/A";
-    const starsDisplay = avgOverall !== "N/A" ? `${Math.round(+avgOverall)}/5` : "";
-
-    const roleCounts = {};
-    ROLES.forEach(r=>roleCounts[r.key]=0);
-    data.forEach(r=>{ if (roleCounts[r["role"]]!==undefined) roleCounts[r["role"]]++; });
-    const uniqueRoles = ROLES.filter(r=>roleCounts[r.key]>0).length;
-
-    const withSummary = data.filter(r=>r["ai_summary"] && r["ai_summary"].trim().length > 10).length;
-
-    const featureStats = FEATURES.map(f=>{
-      const vals = data.map(r=>+r[`rating_${f.key}`]||0).filter(Boolean);
-      return {key:f.key,icon:f.icon,title:f.title,avg:vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0,count:vals.length};
-    }).sort((a,b)=>b.avg-a.avg);
-
-    const taskNames = ["Find today's energy cost","Find room air quality","Find a what-if scenario"];
-    const taskStats = [1,2,3].map(i=>{
-      const easy = data.filter(r=>{
-        try { return JSON.parse(r[`task${i}_result`]).completed===0; } catch { return false; }
-      }).length;
-      return Math.round(100*easy/total);
+    fetch(CONFIG.SHEET_CSV_URL).then(r=>r.text()).then(csv=>{
+      const rows = csv.split(/\r?\n/).filter(Boolean).map(r=>r.split(","));
+      if (rows.length < 2) {
+        renderAdminEmptyState(content, "Google Sheet CSV", "No responses yet.", "Share the survey link to start collecting data.");
+        return;
+      }
+      const headers = rows[0];
+      const data = rows.slice(1).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]])));
+      renderAdminContent(content, data, "Google Sheet CSV");
+    }).catch(()=>{
+      renderAdminEmptyState(
+        content,
+        "Local browser storage",
+        "Could not load data.",
+        "No backend data source is available yet.",
+        `${remoteFailureNote} Google Sheets fallback is also unavailable.`
+      );
     });
-
-    const summaries = data.slice(-5).reverse().map((r,i)=>({role:r["role"],summary:r["ai_summary"],idx:total-i}));
-    const maxRoleCount = Math.max(...ROLES.map(r=>roleCounts[r.key]), 1);
-
-    //  Helper: rating color 
-    function ratingColor(avg) {
-      if (avg >= 4) return "#16a34a";
-      if (avg >= 3) return "#d97706";
-      return "#dc2626";
-    }
-
-    let html = "";
-
-    //  Stats grid 
-    html += `
-    <div class='admin-stats-grid'>
-      <div class='admin-stat-card'>
-
-        <div class='admin-stat-value'>${total}</div>
-        <div class='admin-stat-label'>Total Responses</div>
-        <div class='admin-stat-sub'>${withSummary} with AI summary</div>
-      </div>
-      <div class='admin-stat-card'>
-  
-        <div class='admin-stat-value'>${avgOverall}</div>
-        <div class='admin-stat-label'>Avg Overall Rating</div>
-        <div class='admin-stat-sub' style='color:#f59e0b;letter-spacing:1px'>${starsDisplay}</div>
-      </div>
-      <div class='admin-stat-card'>
-
-        <div class='admin-stat-value'>${uniqueRoles}</div>
-        <div class='admin-stat-label'>Roles Represented</div>
-        <div class='admin-stat-sub'>out of ${ROLES.length} total roles</div>
-      </div>
-      <div class='admin-stat-card'>
-
-        <div class='admin-stat-value'>${taskStats[0]}%</div>
-        <div class='admin-stat-label'>Task 1 Easy Rate</div>
-        <div class='admin-stat-sub'>completed without difficulty</div>
-      </div>
-    </div>`;
-
-    //  Role breakdown 
-    html += `<div class='admin-section'>
-      <div class='admin-section-header'>
-
-        <span class='section-badge'>${total} total</span>
-      </div>
-      <div class='admin-role-chart'>
-        ${ROLES.map(r=>{
-          const count = roleCounts[r.key];
-          const pct = total > 0 ? Math.round(100*count/total) : 0;
-          const barH = Math.max(4, Math.round(90 * count / maxRoleCount));
-          return `<div class='admin-role-col-wrap'>
-            <div class='admin-role-count'>${count}</div>
-            <div class='admin-role-pct'>${pct}%</div>
-            <div class='admin-role-bar' style='height:${barH}px' title='${r.title}: ${count} response(s)'></div>
-            <div class='admin-role-label'><br>${r.title.split(" ").slice(0,2).join(" ")}</div>
-          </div>`;
-        }).join("")}
-      </div>
-    </div>`;
-
-    //  Feature ratings 
-    html += `<div class='admin-section'>
-      <div class='admin-section-header'> Feature Ratings
-        <span class='section-badge'>sorted by avg</span>
-      </div>
-      ${featureStats.map(f=>{
-        const barW = f.avg > 0 ? Math.round(100*f.avg/5) : 0;
-        const color = ratingColor(f.avg);
-        return `<div class='admin-feature-row'>
-          <span class='admin-feature-icon'>${f.icon}</span>
-          <span class='admin-feature-name'>${f.title}</span>
-          <div class='admin-feature-bar-wrap'>
-            <div class='admin-feature-bar-fill' style='width:${barW}%;background:${color}'></div>
-          </div>
-          <span class='admin-feature-score' style='color:${color}'>${f.avg>0?f.avg.toFixed(2):"-"}/5</span>
-          <span class='admin-feature-count'>${f.count} rated</span>
-        </div>`;
-      }).join("")}
-    </div>`;
-
-    //  Task completion 
-    html += `<div class='admin-section'>
-      <div class='admin-section-header'>
-        <span class='section-icon'>Task</span> Task Completion - "Completed Easily" Rate
-      </div>
-      ${taskStats.map((pct,i)=>`
-        <div class='admin-task-row'>
-          <div class='admin-task-header'>
-            <span class='admin-task-label'>Task ${i+1}: ${taskNames[i]||""}</span>
-            <span class='admin-task-pct'>${pct}%</span>
-          </div>
-          <div class='admin-task-progress'>
-            <div class='admin-task-progress-fill' style='width:${pct}%'></div>
-          </div>
-          <div class='admin-task-desc'>${data.filter(r=>{ try{return JSON.parse(r[`task${i+1}_result`]).completed===0;}catch{return false;} }).length} out of ${total} respondents completed this easily</div>
-        </div>
-      `).join("")}
-    </div>`;
-
-    //  AI Summaries 
-    const validSummaries = summaries.filter(s=>s.summary && s.summary.trim().length>10);
-    if (validSummaries.length) {
-      html += `<div class='admin-section'>
-        <div class='admin-section-header'>
-          <span class='section-icon'>AI</span> Recent AI-Generated Summaries
-          <span class='section-badge'>last ${validSummaries.length}</span>
-        </div>
-        ${validSummaries.map(s=>{
-          const role = ROLES.find(r=>r.key===s.role);
-          return `<div class='admin-summary-card'>
-            <div class='admin-summary-card-header'>
-              <span>${role?role.icon:""}</span>
-              <span class='admin-summary-role'>${role?role.title:s.role}</span>
-              <span class='admin-summary-idx'>Response #${s.idx}</span>
-            </div>
-            <div class='admin-summary-text'>${s.summary||"<em style='color:#94a3b8'>No summary generated</em>"}</div>
-          </div>`;
-        }).join("")}
-      </div>`;
-    }
-
-    //  Raw responses 
-    html += `<div class='admin-section'>
-      <div class='admin-section-header'>
-        <span class='section-icon'>Data</span> Raw Response Data
-        <span class='section-badge'>${total} rows</span>
-      </div>
-      <div style='overflow-x:auto;max-width:100%;'>
-        <table class='admin-table'>
-          <tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr>
-          ${data.map(r=>`<tr>${headers.map(h=>`<td>${r[h]||""}</td>`).join("")}</tr>`).join("")}
-        </table>
-      </div>
-      <button class='admin-download-btn' onclick='downloadCSV()'>Download CSV</button>
-    </div>`;
-
-    content.innerHTML = html;
-  }).catch(()=>{
-    const content = document.getElementById('admin-content');
-    if (content) content.innerHTML = `<div class='admin-no-data'><div class='no-data-icon'>Error</div><b>Could not load data.</b><br>Check that <code>SHEET_CSV_URL</code> is configured correctly.</div>`;
   });
-  // Auto-refresh
+
   setTimeout(()=>{ if(isAdmin()) render(); }, 60000);
 }
+
 function downloadCSV() {
+  if (!hasConfiguredSheetCsv()) {
+    const data = loadLocalResponses();
+    if (!data.length) return;
+    const headers = Object.keys(data[0]);
+    const escapeCell = value => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const csv = [
+      headers.map(escapeCell).join(","),
+      ...data.map(row => headers.map(header => escapeCell(row[header])).join(","))
+    ].join("\n");
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'gate_sofia_responses_local.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    return;
+  }
   fetch(CONFIG.SHEET_CSV_URL).then(r=>r.text()).then(csv=>{
     const blob = new Blob([csv], {type:'text/csv'});
     const url = URL.createObjectURL(blob);
@@ -1405,7 +1640,22 @@ window.addEventListener("keydown", e => {
 // Admin password modal
 function showAdminPasswordModal() {
   const app = document.getElementById("app");
-  app.innerHTML = `<div class='admin-password-modal'><div class='admin-password-box'><div style='font-size:1.2rem;font-weight:600;margin-bottom:8px;color:var(--text);'>Admin Login</div><input type='password' id='admin_pw' placeholder='Password' autocomplete='current-password' /><button class='button' onclick='checkAdminPassword()'>Login</button><div id='admin_pw_err' class='admin-password-error'></div></div></div>`;
+  app.innerHTML = `
+    <div class='admin-password-modal'>
+      <div class='admin-password-box'>
+        <div class='admin-password-badge'>Restricted access</div>
+        <div class='admin-password-title'>Admin dashboard login</div>
+        <div class='admin-password-subtitle'>Enter the administrator password to review survey responses, ratings, and AI-generated summaries.</div>
+        <div class='admin-password-field'>
+          <label for='admin_pw'>Password</label>
+          <input type='password' id='admin_pw' placeholder='Enter admin password' autocomplete='current-password' />
+        </div>
+        <button class='button admin-login-btn' onclick='checkAdminPassword()'>Access dashboard</button>
+        <div class='admin-password-note'>This area is intended only for the researcher and authorised supervisors.</div>
+        <div id='admin_pw_err' class='admin-password-error'></div>
+      </div>
+    </div>
+  `;
   document.getElementById('admin_pw').focus();
 }
 function checkAdminPassword() {
