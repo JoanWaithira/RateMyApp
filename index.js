@@ -711,16 +711,7 @@ function renderTour() {
 //  STEP 4: TASK TESTING 
 function renderTasks() {
   const div = document.createElement("div");
-  div.innerHTML = `<h2 style='font-size:1.4rem;font-weight:600;margin-bottom:6px;color:var(--text);'>Now try these 3 tasks</h2><div style='color:var(--muted);margin-bottom:18px;'>These tasks are designed to show whether the platform is easy to navigate in realistic situations. Complete them in order, then tell us how each one felt.</div>`;
-  // Open digital twin button
-  const openBtn = document.createElement("a");
-  openBtn.href = CONFIG.DIGITAL_TWIN_URL;
-  openBtn.target = "_blank";
-  openBtn.rel = "noopener noreferrer";
-  openBtn.className = "share-btn";
-  openBtn.style.marginBottom = "18px";
-  openBtn.textContent = "Open Gate Sofia Digital Twin";
-  div.appendChild(openBtn);
+  div.className = "task-page";
   // Task cards
   let taskIdx = window._taskIdx || 0;
   const tasks = [
@@ -731,6 +722,29 @@ function renderTasks() {
   const task = tasks[taskIdx];
   const taskState = survey.tasks[task.key];
   if (!("note" in taskState)) taskState.note = "";
+  const completedCount = tasks.filter(item => survey.tasks[item.key]?.completed !== null).length;
+  const previewOpen = !!window._taskPreviewOpen;
+
+  const hero = document.createElement("div");
+  hero.className = "task-hero";
+  hero.innerHTML = `
+    <div class="task-hero-copy">
+      <div class="task-hero-eyebrow">Practical validation</div>
+      <h2 class="task-hero-title">Test the digital twin while the guidance stays in view.</h2>
+      <p class="task-hero-text">Complete the tasks as naturally as you can. We care less about perfection and more about what feels clear, hidden, or frustrating while you explore.</p>
+    </div>
+    <div class="task-hero-stats">
+      <div class="task-hero-stat">
+        <span class="task-hero-stat-value">${taskIdx + 1}/3</span>
+        <span class="task-hero-stat-label">Current task</span>
+      </div>
+      <div class="task-hero-stat">
+        <span class="task-hero-stat-value">${completedCount}</span>
+        <span class="task-hero-stat-label">Answered so far</span>
+      </div>
+    </div>
+  `;
+  div.appendChild(hero);
 
   const overview = document.createElement("div");
   overview.className = "task-overview-card";
@@ -766,14 +780,26 @@ function renderTasks() {
   const card = document.createElement("div");
   card.className = "task-card";
   card.innerHTML = `
-    <div class='task-progress'>Task ${taskIdx+1} of 3</div>
-    <div class="task-heading">${task.heading}</div>
+    <div class="task-card-header">
+      <div>
+        <div class='task-progress'>Task ${taskIdx+1} of 3</div>
+        <div class="task-heading">${task.heading}</div>
+      </div>
+      <div class="task-card-badge">${taskIdx === 2 ? "Scenario check" : "Navigation task"}</div>
+    </div>
     <div class="task-subtext">Follow the path below in the digital twin, then record how easy it was to complete.</div>
   `;
   const checklistWrap = document.createElement("div");
   checklistWrap.className = "task-checklist";
+  const checklistTitle = document.createElement("div");
+  checklistTitle.className = "task-checklist-title";
+  checklistTitle.textContent = "Suggested path";
+  checklistWrap.appendChild(checklistTitle);
   const inst = document.createElement("ul");
   inst.className = "task-instructions";
+  const accessLi = document.createElement("li");
+  accessLi.textContent = "Use the preview above or open the full platform in a new tab, whichever feels easier for you.";
+  inst.appendChild(accessLi);
   task.instructions.forEach(i => {
     const li = document.createElement("li");
     li.textContent = i;
@@ -854,6 +880,50 @@ function renderTasks() {
     survey.tasks[task.key].note = e.target.value;
     saveSurvey();
   };
+  const previewToggleRow = document.createElement("div");
+  previewToggleRow.className = "task-preview-toggle-row";
+  const previewToggleBtn = document.createElement("button");
+  previewToggleBtn.type = "button";
+  previewToggleBtn.className = "task-preview-toggle-btn";
+  previewToggleBtn.textContent = previewOpen ? "Hide preview" : "Open preview";
+  previewToggleBtn.onclick = () => {
+    window._taskPreviewOpen = !previewOpen;
+    render();
+  };
+  previewToggleRow.appendChild(previewToggleBtn);
+  const previewOpenLink = document.createElement("a");
+  previewOpenLink.className = "tour-open-link";
+  previewOpenLink.href = CONFIG.DIGITAL_TWIN_URL;
+  previewOpenLink.target = "_blank";
+  previewOpenLink.rel = "noopener noreferrer";
+  previewOpenLink.textContent = "Open full platform";
+  previewToggleRow.appendChild(previewOpenLink);
+  div.appendChild(previewToggleRow);
+
+  if (previewOpen) {
+    const previewShell = document.createElement("div");
+    previewShell.className = "tour-preview-shell task-preview-panel";
+    previewShell.innerHTML = `
+      <div class="tour-preview-header">
+        <div>
+          <div class="tour-preview-title">Digital twin preview</div>
+          <div class="tour-preview-subtitle">Use this optional embedded view if you want the platform visible without leaving the task instructions.</div>
+        </div>
+        <a class="tour-open-link" href="${CONFIG.DIGITAL_TWIN_URL}" target="_blank" rel="noopener noreferrer">Open full platform</a>
+      </div>
+    `;
+    const iframe = document.createElement("iframe");
+    iframe.className = "task-preview-frame";
+    iframe.src = CONFIG.DIGITAL_TWIN_URL;
+    iframe.title = "Gate Sofia Digital Twin task preview";
+    iframe.loading = "lazy";
+    previewShell.appendChild(iframe);
+    const previewNote = document.createElement("div");
+    previewNote.className = "task-preview-note";
+    previewNote.textContent = "If the embedded preview feels limited, use the full platform button for a larger view.";
+    previewShell.appendChild(previewNote);
+    div.appendChild(previewShell);
+  }
   card.appendChild(noteRow);
   div.appendChild(card);
   // Next/prev task navigation
