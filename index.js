@@ -428,11 +428,85 @@ function renderStepIndicator() {
 
 //  BACK BUTTON 
 function renderBackBtn() {
+  const wrap = document.createElement("div");
+  wrap.className = "step-nav";
   const btn = document.createElement("button");
   btn.className = "back-btn";
   btn.textContent = "Back";
   btn.onclick = prevStep;
-  return btn;
+  wrap.appendChild(btn);
+
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "step-next-btn";
+  const config = getStepNextConfig();
+  nextBtn.textContent = config.label;
+  nextBtn.disabled = !config.enabled;
+  nextBtn.onclick = () => {
+    if (config.enabled) config.action();
+  };
+  wrap.appendChild(nextBtn);
+  return wrap;
+}
+
+function getStepNextConfig() {
+  switch (survey.currentStep) {
+    case 2:
+      return {
+        label: "Next",
+        enabled: !!survey.role,
+        action: nextStep
+      };
+    case 3:
+      return {
+        label: "Next",
+        enabled: true,
+        action: nextStep
+      };
+    case 4: {
+      const taskIdx = window._taskIdx || 0;
+      const tasks = [
+        TASKS[0],
+        Object.assign({}, TASKS[1], TASK2_ROLE_MAP[survey.role] || {}),
+        TASKS[2]
+      ];
+      const task = tasks[taskIdx];
+      const taskState = survey.tasks[task.key];
+      const enabled = taskIdx < 2
+        ? taskState.completed !== null && taskState.time !== null
+        : taskState.completed !== null && survey.tasks.task3.scenario !== null;
+      return {
+        label: taskIdx < 2 ? "Next Task" : "Continue",
+        enabled,
+        action: () => {
+          if (taskIdx < 2) {
+            window._taskIdx = taskIdx + 1;
+            render();
+          } else {
+            window._taskIdx = 0;
+            nextStep();
+          }
+        }
+      };
+    }
+    case 5:
+      return {
+        label: "Next",
+        enabled: Object.values(survey.ratings).every(v => v > 0) && !!survey.mostUseful && !!survey.needsWork,
+        action: nextStep
+      };
+    case 6:
+      return {
+        label: "Submit",
+        enabled: !!survey.overall,
+        action: nextStep
+      };
+    default:
+      return {
+        label: "Next",
+        enabled: false,
+        action: nextStep
+      };
+  }
 }
 
 //  RESUME BANNER 
@@ -798,7 +872,7 @@ function renderTasks() {
   const inst = document.createElement("ul");
   inst.className = "task-instructions";
   const accessLi = document.createElement("li");
-  accessLi.textContent = "Use the preview above or open the full platform in a new tab, whichever feels easier for you.";
+  accessLi.textContent = "Use the preview above by pressing the Open Preview button or open the full platform in a new tab, whichever feels easier for you.";
   inst.appendChild(accessLi);
   task.instructions.forEach(i => {
     const li = document.createElement("li");
