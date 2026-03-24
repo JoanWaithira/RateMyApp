@@ -182,9 +182,9 @@ function getInitialSurvey() {
     currentStep: 1,
     totalSteps: 7,
     tasks: {
-      task1: { completed: null, time: null },
-      task2: { completed: null, time: null },
-      task3: { completed: null, scenario: null },
+      task1: { completed: null, time: null, note: "" },
+      task2: { completed: null, time: null, note: "" },
+      task3: { completed: null, scenario: null, note: "" },
     },
     ratings: {
       viewer: 0,
@@ -393,12 +393,12 @@ function renderWelcome() {
     <div style="display:flex;align-items:center;gap:18px;margin-bottom:22px;flex-wrap:wrap;">
       <img src='./img/Joan.jpeg' alt='University of Twente' style='height:44px;background:#fff;border-radius:8px;padding:4px 10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1px solid var(--border);'>
       <div>
-        <div style="font-size:1.1rem;font-weight:600;color:var(--accent);">Research Consent</div>
+        <div style="font-size:1.1rem;font-weight:600;color:var(--accent);">Energy Digital Twin for Smart Building Management</div>
         <div style="font-size:0.97rem;color:var(--muted);">Please read this information carefully before taking part in the study.</div>
       </div>
       <a id="admin-link" style="display:none;" title="Admin dashboard">Admin</a>
     </div>
-    <h1 style="font-size:2rem;font-weight:700;margin-bottom:14px;color:var(--text);line-height:1.2;">Energy Digital Twin for Smart Building Management<br><span style="color:var(--accent);">Participant Information and Consent</span></h1>
+    <h1 style="font-size:2rem;font-weight:700;margin-bottom:14px;color:var(--text);line-height:1.2;"><span >Participant Information and Consent</span></h1>
     <div class="consent-card">
       <div class="consent-meta">
         <div><b>Researcher:</b> <a href="https://www.linkedin.com/in/joan-waithira/" target="_blank" rel="noopener noreferrer" style="color:var(--accent);font-weight:700;text-decoration:underline;text-underline-offset:2px;">Joan Waithira Njoroge</a></div>
@@ -500,13 +500,6 @@ function renderRole() {
     grid.appendChild(card);
   });
   div.appendChild(grid);
-  // Name field
-  const nameRow = document.createElement("div");
-  nameRow.className = "input-row";
-  nameRow.innerHTML = `
-    <input type="text" placeholder="Your name (optional)" value="${survey.name||""}" style="font-size:14px;" oninput="survey.name=this.value;saveSurvey();">
-  `;
-  div.appendChild(nameRow);
   return div;
 }
 
@@ -514,10 +507,26 @@ function renderRole() {
 //  STEP 3: GUIDED TOUR 
 function renderTour() {
   const div = document.createElement("div");
+  const roleTitle = ROLES.find(role => role.key === survey.role)?.title || "your role";
   div.innerHTML = `
-    <h2 style='font-size:1.4rem;font-weight:600;margin-bottom:6px;color:var(--text);'>Here's what the digital twin does</h2>
-    <div style='color:var(--muted);margin-bottom:18px;'>Take 2 minutes to explore these features</div>
+    <h2 style='font-size:1.4rem;font-weight:600;margin-bottom:6px;color:var(--text);'>Take a quick guided tour</h2>
+    <div style='color:var(--muted);margin-bottom:18px;'>Spend about 2 minutes exploring the platform before you start the tasks. Focus on the panels and insights most relevant to ${roleTitle}.</div>
   `;
+  const intro = document.createElement("div");
+  intro.className = "tour-intro-card";
+  intro.innerHTML = `
+    <div class="tour-intro-copy">
+      <div class="tour-eyebrow">What to look for</div>
+      <div class="tour-intro-title">Understand the building, then the decisions behind it</div>
+      <div class="tour-intro-text">Start with the 3D building view, then open the side panels to inspect energy, indoor climate, solar performance, faults, and scenarios. You do not need to understand everything yet. Just get oriented.</div>
+    </div>
+    <div class="tour-focus-list">
+      <div class="tour-focus-item">1. Locate the main navigation or replay panel</div>
+      <div class="tour-focus-item">2. Open at least two feature tabs</div>
+      <div class="tour-focus-item">3. Notice which view seems most useful for your role</div>
+    </div>
+  `;
+  div.appendChild(intro);
   // Try iframe, fallback to gallery
   let iframeBlocked = false;
   const iframe = document.createElement("iframe");
@@ -533,8 +542,20 @@ function renderTour() {
     {src: "https://dummyimage.com/800x480/e0e7ef/2563eb&text=Solar+generation+and+battery", caption: "Solar generation and battery"},
     {src: "https://dummyimage.com/800x480/e0e7ef/2563eb&text=Fault+detection+alerts", caption: "Fault detection alerts"}
   ];
+  const previewShell = document.createElement("div");
+  previewShell.className = "tour-preview-shell";
+  const previewHeader = document.createElement("div");
+  previewHeader.className = "tour-preview-header";
+  previewHeader.innerHTML = `
+    <div>
+      <div class="tour-preview-title">Live platform preview</div>
+      <div class="tour-preview-subtitle">If the embedded preview does not load, open the platform in a new tab.</div>
+    </div>
+    <a class="tour-open-link" href="${CONFIG.DIGITAL_TWIN_URL}" target="_blank" rel="noopener noreferrer">Open full platform</a>
+  `;
+  previewShell.appendChild(previewHeader);
   if (!iframeBlocked) {
-    div.appendChild(iframe);
+    previewShell.appendChild(iframe);
   } else {
     // Gallery
     let galleryIdx = window._galleryIdx || 0;
@@ -562,29 +583,57 @@ function renderTour() {
     arrows.appendChild(prev);
     arrows.appendChild(next);
     gallery.appendChild(arrows);
-    div.appendChild(gallery);
+    previewShell.appendChild(gallery);
   }
+  div.appendChild(previewShell);
   // Highlight cards
   const highlights = [
-    {title:"Live 3D Building",desc:"Navigate the building in 3D and see real-time data overlaid on each room"},
-    {title:"Energy Monitoring",desc:"Track 16 electrical circuits with 48 hours of replay data"},
-    {title:"Fault Detection",desc:"19 automated rules detect problems before they become expensive"}
+    {icon:"🏢",title:"Live 3D Building",desc:"Navigate the building in 3D and understand how rooms, floors, and systems connect."},
+    {icon:"⚡",title:"Energy Monitoring",desc:"Inspect circuit-level demand and spot where energy is being used right now or in replay mode."},
+    {icon:"🌡️",title:"Indoor Climate",desc:"Check room comfort indicators such as CO2, temperature, and humidity to understand occupant conditions."},
+    {icon:"🔍",title:"Fault Detection",desc:"Review detected issues, likely causes, and recommended actions before they become expensive."},
+    {icon:"🎯",title:"Scenarios and Forecasts",desc:"Explore what-if changes and short-term outlooks to support planning and decision-making."}
   ];
+  const highlightsTitle = document.createElement("div");
+  highlightsTitle.className = "tour-section-title";
+  highlightsTitle.textContent = "Core features to explore";
+  div.appendChild(highlightsTitle);
   const cards = document.createElement("div");
   cards.className = "highlight-cards";
   highlights.forEach(h => {
     const c = document.createElement("div");
     c.className = "highlight-card";
-    c.innerHTML = `<span class='title'>${h.title}</span><span class='desc'>${h.desc}</span>`;
+    c.innerHTML = `<span class='icon'>${h.icon}</span><span class='title'>${h.title}</span><span class='desc'>${h.desc}</span>`;
     cards.appendChild(c);
   });
   div.appendChild(cards);
+  const guideGrid = document.createElement("div");
+  guideGrid.className = "tour-guide-grid";
+  guideGrid.innerHTML = `
+    <div class="tour-guide-card">
+      <div class="tour-guide-label">Suggested path</div>
+      <ol class="tour-guide-list">
+        <li>Scan the building overview first.</li>
+        <li>Open energy or IAQ panels to inspect live values.</li>
+        <li>Try one planning or diagnostic feature such as faults or scenarios.</li>
+      </ol>
+    </div>
+    <div class="tour-guide-card">
+      <div class="tour-guide-label">Keep in mind</div>
+      <ul class="tour-guide-list">
+        <li>You are not being tested on technical accuracy yet.</li>
+        <li>Notice what feels intuitive and what feels hidden.</li>
+        <li>You will rate these features in the next steps.</li>
+      </ul>
+    </div>
+  `;
+  div.appendChild(guideGrid);
   // Continue button
   const btnRow = document.createElement("div");
   btnRow.className = "button-row";
   const btn = document.createElement("button");
   btn.className = "button";
-  btn.textContent = "I've had a look - continue";
+  btn.textContent = "Continue to the task walkthrough";
   btn.onclick = nextStep;
   btnRow.appendChild(btn);
   div.appendChild(btnRow);
@@ -594,7 +643,7 @@ function renderTour() {
 //  STEP 4: TASK TESTING 
 function renderTasks() {
   const div = document.createElement("div");
-  div.innerHTML = `<h2 style='font-size:1.4rem;font-weight:600;margin-bottom:6px;color:var(--text);'>Now try these 3 tasks</h2><div style='color:var(--muted);margin-bottom:18px;'>Open the digital twin in a new tab and try each task. Then come back and tell us how it went.</div>`;
+  div.innerHTML = `<h2 style='font-size:1.4rem;font-weight:600;margin-bottom:6px;color:var(--text);'>Now try these 3 tasks</h2><div style='color:var(--muted);margin-bottom:18px;'>These tasks are designed to show whether the platform is easy to navigate in realistic situations. Complete them in order, then tell us how each one felt.</div>`;
   // Open digital twin button
   const openBtn = document.createElement("a");
   openBtn.href = CONFIG.DIGITAL_TWIN_URL;
@@ -612,19 +661,67 @@ function renderTasks() {
     TASKS[2]
   ];
   const task = tasks[taskIdx];
+  const taskState = survey.tasks[task.key];
+  if (!("note" in taskState)) taskState.note = "";
+
+  const overview = document.createElement("div");
+  overview.className = "task-overview-card";
+  overview.innerHTML = `
+    <div class="task-overview-top">
+      <div>
+        <div class="task-overview-label">Task journey</div>
+        <div class="task-overview-title">Work through the tasks as if you were using the platform in real life.</div>
+      </div>
+      <div class="task-overview-meta">${taskIdx + 1} / 3 active</div>
+    </div>
+  `;
+  const overviewGrid = document.createElement("div");
+  overviewGrid.className = "task-overview-grid";
+  tasks.forEach((item, index) => {
+    const taskBox = document.createElement("button");
+    taskBox.type = "button";
+    const status = survey.tasks[item.key]?.completed;
+    taskBox.className = "task-overview-item";
+    if (index === taskIdx) taskBox.className += " active";
+    if (status !== null) taskBox.className += " done";
+    taskBox.innerHTML = `
+      <span class="task-overview-index">Task ${index + 1}</span>
+      <span class="task-overview-name">${item.heading}</span>
+      <span class="task-overview-status">${status === null ? "Not answered yet" : "Answered"}</span>
+    `;
+    taskBox.onclick = () => { window._taskIdx = index; render(); };
+    overviewGrid.appendChild(taskBox);
+  });
+  overview.appendChild(overviewGrid);
+  div.appendChild(overview);
+
   const card = document.createElement("div");
   card.className = "task-card";
-  card.innerHTML = `<div class='task-progress'>Task ${taskIdx+1} of 3</div><div style='font-weight:600;font-size:1.05rem;margin-bottom:8px;color:var(--text);'>${task.heading}</div>`;
+  card.innerHTML = `
+    <div class='task-progress'>Task ${taskIdx+1} of 3</div>
+    <div class="task-heading">${task.heading}</div>
+    <div class="task-subtext">Follow the path below in the digital twin, then record how easy it was to complete.</div>
+  `;
+  const checklistWrap = document.createElement("div");
+  checklistWrap.className = "task-checklist";
   const inst = document.createElement("ul");
-  inst.style.marginBottom = "10px";
-  inst.style.color = "var(--muted)";
+  inst.className = "task-instructions";
   task.instructions.forEach(i => {
     const li = document.createElement("li");
     li.textContent = i;
     inst.appendChild(li);
   });
-  card.appendChild(inst);
+  checklistWrap.appendChild(inst);
+  card.appendChild(checklistWrap);
+  const tip = document.createElement("div");
+  tip.className = "task-tip";
+  tip.textContent = "Tip: if something is hard to find, keep going and tell us where you got stuck. That feedback is useful.";
+  card.appendChild(tip);
   // Success/difficulty buttons
+  const outcomeLabel = document.createElement("div");
+  outcomeLabel.className = "task-question";
+  outcomeLabel.textContent = "Were you able to complete this task?";
+  card.appendChild(outcomeLabel);
   const btns = document.createElement("div");
   btns.className = "task-btns";
   ["Yes, easily","Yes, with some difficulty","No, I couldn't find it"].forEach((label, i) => {
@@ -638,9 +735,7 @@ function renderTasks() {
   // Follow-up
   if (taskIdx < 2) {
     const follow = document.createElement("div");
-    follow.style.margin = "12px 0 4px 0";
-    follow.style.fontWeight = "500";
-    follow.style.color = "var(--text)";
+    follow.className = "task-question";
     follow.textContent = task.followup;
     card.appendChild(follow);
     const radios = document.createElement("div");
@@ -661,9 +756,7 @@ function renderTasks() {
   } else {
     // Task 3 extra question
     const follow = document.createElement("div");
-    follow.style.margin = "12px 0 4px 0";
-    follow.style.fontWeight = "500";
-    follow.style.color = "var(--text)";
+    follow.className = "task-question";
     follow.textContent = task.followup;
     card.appendChild(follow);
     const radios = document.createElement("div");
@@ -682,6 +775,18 @@ function renderTasks() {
     });
     card.appendChild(radios);
   }
+  const noteRow = document.createElement("div");
+  noteRow.className = "task-note-row";
+  noteRow.innerHTML = `
+    <label for="task-note-${task.key}">Optional note</label>
+    <textarea id="task-note-${task.key}" rows="3" placeholder="Optional: what helped, what was confusing, or where did you get stuck?">${taskState.note || ""}</textarea>
+  `;
+  const noteArea = noteRow.querySelector("textarea");
+  noteArea.oninput = e => {
+    survey.tasks[task.key].note = e.target.value;
+    saveSurvey();
+  };
+  card.appendChild(noteRow);
   div.appendChild(card);
   // Next/prev task navigation
   const navRow = document.createElement("div");
@@ -856,11 +961,16 @@ function renderThankYou() {
   // If AI summary not yet generated, show loading state and kick off generation
   if (!survey.aiSummary) {
     div.innerHTML = `
-      <div class='thankyou-check'>Done</div>
-      <div class='thankyou-heading'>Thank you for your feedback!</div>
-      <div class='thankyou-sub'>Your input directly shapes how the Gate Sofia Digital Twin develops.</div>
-      <div style="text-align:center;color:var(--muted);font-size:1rem;margin-top:8px;">
-        Generating your personalised summary<span class='loading-dots'>...</span>
+      <div class='thankyou-shell'>
+        <div class='thankyou-hero'>
+          <div class='thankyou-check'>Done</div>
+          <div class='thankyou-heading'>Thank you for your feedback!</div>
+          <div class='thankyou-sub'>Your input directly shapes how the Gate Sofia Digital Twin develops for future users and research.</div>
+        </div>
+        <div class='thankyou-loading'>
+          <div class='thankyou-loading-title'>Preparing your personalised summary</div>
+          <div class='thankyou-loading-text'>We are turning your responses into a short research-style recap<span class='loading-dots'>...</span></div>
+        </div>
       </div>
     `;
     generateAISummary().then(summary => {
@@ -872,20 +982,58 @@ function renderThankYou() {
   }
 
   // Full thank you content once AI is ready
-  div.innerHTML = `<div class='thankyou-check'>Done</div><div class='thankyou-heading'>Thank you for your feedback!</div><div class='thankyou-sub'>Your input directly shapes how the Gate Sofia Digital Twin develops.</div>`;
+  div.className = "thankyou-shell";
+  div.innerHTML = `
+    <div class='thankyou-hero'>
+      <div class='thankyou-check'>Done</div>
+      <div class='thankyou-heading'>Thank you for your feedback!</div>
+      <div class='thankyou-sub'>Your input directly shapes how the Gate Sofia Digital Twin develops for future users and research.</div>
+    </div>
+  `;
   div.appendChild(renderAISummaryCard(survey.aiSummary));
   // Stats
   const completedTasks = [survey.tasks.task1, survey.tasks.task2, survey.tasks.task3].filter(t=>t.completed===0).length;
   const avgRating = (Object.values(survey.ratings).reduce((a,b)=>a+b,0)/8).toFixed(1);
+  const topFeatureKey = Object.entries(survey.ratings).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const topFeature = FEATURES.find(feature => feature.key === topFeatureKey)?.title || "No feature selected";
   const stats = document.createElement("div");
   stats.className = "thankyou-stats";
-  stats.innerHTML = `<div class='thankyou-stat'>Tasks completed easily: <b id='count-tasks'>0</b>/3</div><div class='thankyou-stat'>Average feature rating: <b id='count-rating'>0.0</b>/5</div>`;
+  stats.innerHTML = `
+    <div class='thankyou-stat'>
+      <span class='thankyou-stat-label'>Tasks completed easily</span>
+      <span class='thankyou-stat-value'><b id='count-tasks'>0</b>/3</span>
+    </div>
+    <div class='thankyou-stat'>
+      <span class='thankyou-stat-label'>Average feature rating</span>
+      <span class='thankyou-stat-value'><b id='count-rating'>0.0</b>/5</span>
+    </div>
+    <div class='thankyou-stat thankyou-stat-wide'>
+      <span class='thankyou-stat-label'>Top rated feature</span>
+      <span class='thankyou-stat-value thankyou-stat-text'>${topFeature}</span>
+    </div>
+  `;
   div.appendChild(stats);
   // Animate count-up
   setTimeout(()=>{
     animateCount("count-tasks", completedTasks);
     animateCount("count-rating", avgRating);
   }, 200);
+  const nextBlock = document.createElement("div");
+  nextBlock.className = "thankyou-next";
+  nextBlock.innerHTML = `
+    <div class='thankyou-next-title'>What happens next</div>
+    <div class='thankyou-next-text'>Your responses will be reviewed as part of the evaluation of the Energy Digital Twin for Smart Building Management. We use this feedback to identify what is intuitive, what is confusing, and what needs redesign.</div>
+  `;
+  div.appendChild(nextBlock);
+  const actionWrap = document.createElement("div");
+  actionWrap.className = "thankyou-actions";
+  const nameRow = document.createElement("div");
+  nameRow.className = "thankyou-name-row";
+  nameRow.innerHTML = `
+    <label for="thankyou-name">Name (optional)</label>
+    <input id="thankyou-name" type="text" placeholder="Enter your name if you would like to share it" value="${survey.name || ""}" oninput="survey.name=this.value;saveSurvey();">
+  `;
+  actionWrap.appendChild(nameRow);
   // Share button
   const share = document.createElement("a");
   share.href = CONFIG.DIGITAL_TWIN_URL;
@@ -893,12 +1041,13 @@ function renderThankYou() {
   share.rel = "noopener noreferrer";
   share.className = "share-btn";
   share.textContent = "Share the digital twin";
-  div.appendChild(share);
+  actionWrap.appendChild(share);
   // Email notify
   const notifyRow = document.createElement("div");
   notifyRow.className = "notify-row";
   notifyRow.innerHTML = `<input type='email' placeholder='Your email (optional)' value='${survey.email||""}' oninput='survey.email=this.value;saveSurvey();'><button class='button' onclick='submitToGoogleForm(true)'>Notify me</button>`;
-  div.appendChild(notifyRow);
+  actionWrap.appendChild(notifyRow);
+  div.appendChild(actionWrap);
   return div;
 }
 
