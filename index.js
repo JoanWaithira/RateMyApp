@@ -1,51 +1,11 @@
 ﻿//  CONFIG 
 const CONFIG = {
   DIGITAL_TWIN_URL:  "https://ai-building-silk.vercel.app/", // Replace with your Vercel app URL
-  GOOGLE_FORM_URL:   "https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse", // Use the Google Form POST endpoint, ending in /formResponse
-  SHEET_CSV_URL:     "https://docs.google.com/spreadsheets/d/e/YOUR_SHEET_ID/pub?output=csv", // Use the published Google Sheet CSV URL
   SUMMARY_ENDPOINT:  "/.netlify/functions/generate-summary",
   RESPONSE_SAVE_ENDPOINT: "/.netlify/functions/save-response",
   RESPONSE_LIST_ENDPOINT: "/.netlify/functions/list-responses",
   ADMIN_PASSWORD:    "gate2026"
 };
-
-const FORM_FIELD_IDS = {
-  startedAt:  "entry.000000000",
-  role:       "entry.000000001",
-  name:       "entry.000000002",
-  task1:      "entry.000000003",
-  task2:      "entry.000000004",
-  task3:      "entry.000000005",
-  rating3d:   "entry.000000006",
-  ratingEnergy:"entry.000000007",
-  ratingSolar:"entry.000000008",
-  ratingIaq:  "entry.000000009",
-  ratingFaults:"entry.000000010",
-  ratingScenarios:"entry.000000011",
-  ratingForecast:"entry.000000012",
-  ratingRoles:"entry.000000013",
-  mostUseful: "entry.000000014",
-  needsWork:  "entry.000000015",
-  overall:    "entry.000000016",
-  whatWorked: "entry.000000017",
-  whatNeeded: "entry.000000018",
-  wouldUse:   "entry.000000019",
-  other:      "entry.000000020",
-  aiSummary:  "entry.000000021",
-  email:      "entry.000000022"
-};
-
-function isPlaceholderValue(value, token) {
-  return !value || String(value).includes(token);
-}
-
-function hasConfiguredGoogleForm() {
-  return !isPlaceholderValue(CONFIG.GOOGLE_FORM_URL, "YOUR_FORM_ID");
-}
-
-function hasConfiguredSheetCsv() {
-  return !isPlaceholderValue(CONFIG.SHEET_CSV_URL, "YOUR_SHEET_ID");
-}
 
 function buildExtraCommentsSummary() {
   const featureNotes = Object.entries(survey.featureComments || {})
@@ -257,7 +217,8 @@ function getInitialSurvey() {
 let survey = getInitialSurvey();
 let resumeBanner = false;
 const LS_KEY = "gate_survey";
-const RESPONSES_KEY = "gate_survey_responses";
+let thankYouSaveMessage = "";
+let thankYouSaveTone = "";
 
 //  LOCAL STORAGE 
 function saveSurvey() {
@@ -306,26 +267,6 @@ function getSurveySubmissionRecord() {
   };
 }
 
-function loadLocalResponses() {
-  const raw = localStorage.getItem(RESPONSES_KEY);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalSubmission() {
-  const rows = loadLocalResponses();
-  const record = getSurveySubmissionRecord();
-  const existingIndex = rows.findIndex(row => row.started_at === record.started_at);
-  if (existingIndex >= 0) rows[existingIndex] = record;
-  else rows.push(record);
-  localStorage.setItem(RESPONSES_KEY, JSON.stringify(rows));
-}
-
 async function saveRemoteSubmission() {
   const response = await fetch(CONFIG.RESPONSE_SAVE_ENDPOINT, {
     method: "POST",
@@ -341,6 +282,30 @@ async function saveRemoteSubmission() {
   }
 
   return response.json().catch(() => ({}));
+}
+
+async function saveThankYouDetails(button) {
+  const previousText = button ? button.textContent : "";
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Saving...";
+  }
+
+  try {
+    await saveRemoteSubmission();
+    thankYouSaveMessage = "Your optional details were saved to the shared research database.";
+    thankYouSaveTone = "success";
+  } catch (error) {
+    console.error("Saving optional details failed.", error);
+    thankYouSaveMessage = "Could not save your details to Supabase. Please check the Netlify function and Supabase keys.";
+    thankYouSaveTone = "error";
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = previousText || "Save details";
+    }
+    render();
+  }
 }
 
 //  STEP NAVIGATION 
@@ -1054,13 +1019,11 @@ function renderFeedback() {
 
 //  STEP 7: THANK YOU + AI SUMMARY 
 function renderThankYou() {
-  // Submit to Google Form once
+  // Submit to Supabase once
   if (!window._submitted) {
-    saveLocalSubmission();
     saveRemoteSubmission().catch(error => {
-      console.warn("Remote response save failed, using local storage only.", error);
+      console.warn("Remote response save failed.", error);
     });
-    submitToGoogleForm();
     window._submitted = true;
   }
   const div = document.createElement("div");
@@ -1083,9 +1046,8 @@ function renderThankYou() {
     generateAISummary().then(summary => {
       survey.aiSummary = summary;
       saveSurvey();
-      saveLocalSubmission();
       saveRemoteSubmission().catch(error => {
-        console.warn("Remote response update failed, using local storage only.", error);
+        console.warn("Remote response update failed.", error);
       });
       render();
     });
@@ -1156,8 +1118,17 @@ function renderThankYou() {
   // Email notify
   const notifyRow = document.createElement("div");
   notifyRow.className = "notify-row";
-  notifyRow.innerHTML = `<input type='email' placeholder='Your email (optional)' value='${survey.email||""}' oninput='survey.email=this.value;saveSurvey();'><button class='button' onclick='submitToGoogleForm(true)'>Notify me</button>`;
+  notifyRow.innerHTML = `
+    <input type='email' placeholder='Your email (optional)' value='${survey.email||""}' oninput='survey.email=this.value;saveSurvey();'>
+    <button class='button' onclick='saveThankYouDetails(this)'>Save details</button>
+  `;
   actionWrap.appendChild(notifyRow);
+  if (thankYouSaveMessage) {
+    const saveNote = document.createElement("div");
+    saveNote.className = `thankyou-save-note ${thankYouSaveTone}`;
+    saveNote.textContent = thankYouSaveMessage;
+    actionWrap.appendChild(saveNote);
+  }
   div.appendChild(actionWrap);
   return div;
 }
@@ -1248,44 +1219,6 @@ function animateCount(id, end) {
   };
   step();
 }
-function submitToGoogleForm(emailOnly) {
-  if (!hasConfiguredGoogleForm()) {
-    console.warn("GOOGLE_FORM_URL is still using a placeholder value.");
-    return;
-  }
-  // Compose form data
-  const fd = new FormData();
-  const appendField = (fieldId, value) => {
-    if (!fieldId || !String(fieldId).startsWith("entry.")) return;
-    fd.append(fieldId, value ?? "");
-  };
-
-  appendField(FORM_FIELD_IDS.startedAt, survey.startedAt);
-  appendField(FORM_FIELD_IDS.role, survey.role);
-  appendField(FORM_FIELD_IDS.name, survey.name);
-  appendField(FORM_FIELD_IDS.task1, JSON.stringify(survey.tasks.task1));
-  appendField(FORM_FIELD_IDS.task2, JSON.stringify(survey.tasks.task2));
-  appendField(FORM_FIELD_IDS.task3, JSON.stringify(survey.tasks.task3));
-  appendField(FORM_FIELD_IDS.rating3d, survey.ratings.viewer);
-  appendField(FORM_FIELD_IDS.ratingEnergy, survey.ratings.energy);
-  appendField(FORM_FIELD_IDS.ratingSolar, survey.ratings.solar);
-  appendField(FORM_FIELD_IDS.ratingIaq, survey.ratings.iaq);
-  appendField(FORM_FIELD_IDS.ratingFaults, survey.ratings.faults);
-  appendField(FORM_FIELD_IDS.ratingScenarios, survey.ratings.scenarios);
-  appendField(FORM_FIELD_IDS.ratingForecast, survey.ratings.forecast);
-  appendField(FORM_FIELD_IDS.ratingRoles, survey.ratings.roles);
-  appendField(FORM_FIELD_IDS.mostUseful, survey.mostUseful);
-  appendField(FORM_FIELD_IDS.needsWork, survey.needsWork);
-  appendField(FORM_FIELD_IDS.overall, survey.overall);
-  appendField(FORM_FIELD_IDS.whatWorked, survey.whatWorked);
-  appendField(FORM_FIELD_IDS.whatNeeded, survey.whatNeeded);
-  appendField(FORM_FIELD_IDS.wouldUse, survey.wouldUse);
-  appendField(FORM_FIELD_IDS.other, buildExtraCommentsSummary());
-  appendField(FORM_FIELD_IDS.aiSummary, survey.aiSummary);
-  appendField(FORM_FIELD_IDS.email, survey.email);
-  fetch(CONFIG.GOOGLE_FORM_URL, { method: "POST", mode: "no-cors", body: fd });
-}
-
 function ratingColor(avg) {
   if (avg >= 4) return "#16a34a";
   if (avg >= 3) return "#d97706";
@@ -1300,23 +1233,7 @@ function buildBackendStatusMarkup(activeSource, responseCount) {
       state: activeSource === "Supabase database" ? "Active" : "Standby",
       detail: activeSource === "Supabase database"
         ? `${responseCount} shared response(s) loaded from the database`
-        : "Used when the Netlify response functions can reach Supabase"
-    },
-    {
-      label: "Local storage",
-      active: activeSource === "Local browser storage",
-      state: activeSource === "Local browser storage" ? "Active" : "Fallback",
-      detail: activeSource === "Local browser storage"
-        ? `${responseCount} response(s) available in this browser`
-        : "Used when no shared backend is available"
-    },
-    {
-      label: "Google Sheets",
-      active: activeSource === "Google Sheet CSV",
-      state: activeSource === "Google Sheet CSV" ? "Active" : (hasConfiguredSheetCsv() ? "Configured" : "Off"),
-      detail: hasConfiguredSheetCsv()
-        ? "Available as an alternate shared response source"
-        : "Not configured in this app"
+        : "This app now relies on Netlify functions writing directly to Supabase"
     }
   ];
 
@@ -1359,9 +1276,7 @@ function renderAdminContent(content, data, sourceLabel) {
       content,
       sourceLabel,
       "No responses yet.",
-      sourceLabel === "Local browser storage"
-        ? "Complete the survey on this device/browser to populate the local admin dashboard."
-        : "The selected backend is connected, but there are no saved survey rows yet."
+      "The selected backend is connected, but there are no saved survey rows yet."
     );
     return;
   }
@@ -1543,49 +1458,27 @@ function renderAdmin(app) {
     const rows = Array.isArray(payload?.responses) ? payload.responses : [];
     renderAdminContent(content, rows, "Supabase database");
   }).catch(() => {
-    let remoteFailureNote = "Supabase database could not be reached, so the dashboard is using local browser storage instead.";
-    if (!hasConfiguredSheetCsv()) {
-      const localRows = loadLocalResponses();
-      if (localRows.length) {
-        renderAdminContent(content, localRows, "Local browser storage");
-      } else {
-        renderAdminEmptyState(
-          content,
-          "Local browser storage",
-          "No responses yet.",
-          "There are no locally saved responses in this browser.",
-          `${remoteFailureNote} If you expected Supabase data, check your Netlify environment variables and confirm SUPABASE_SERVICE_ROLE_KEY is the real service role key.`
-        );
-      }
-      return;
-    }
-
-    fetch(CONFIG.SHEET_CSV_URL).then(r=>r.text()).then(csv=>{
-      const rows = csv.split(/\r?\n/).filter(Boolean).map(r=>r.split(","));
-      if (rows.length < 2) {
-        renderAdminEmptyState(content, "Google Sheet CSV", "No responses yet.", "Share the survey link to start collecting data.");
-        return;
-      }
-      const headers = rows[0];
-      const data = rows.slice(1).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]])));
-      renderAdminContent(content, data, "Google Sheet CSV");
-    }).catch(()=>{
-      renderAdminEmptyState(
-        content,
-        "Local browser storage",
-        "Could not load data.",
-        "No backend data source is available yet.",
-        `${remoteFailureNote} Google Sheets fallback is also unavailable.`
-      );
-    });
+    renderAdminEmptyState(
+      content,
+      "Supabase standby",
+      "Could not load Supabase responses.",
+      "The admin dashboard could not reach the Supabase-backed Netlify functions.",
+      "Check that you are running through Netlify Functions, SUPABASE_URL is correct, SUPABASE_SERVICE_ROLE_KEY is the real service role key, and the survey_responses table exists."
+    );
   });
 
   setTimeout(()=>{ if(isAdmin()) render(); }, 60000);
 }
 
 function downloadCSV() {
-  if (!hasConfiguredSheetCsv()) {
-    const data = loadLocalResponses();
+  fetch(CONFIG.RESPONSE_LIST_ENDPOINT).then(async response => {
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `List responses failed with ${response.status}`);
+    }
+    return response.json();
+  }).then(payload => {
+    const data = Array.isArray(payload?.responses) ? payload.responses : [];
     if (!data.length) return;
     const headers = Object.keys(data[0]);
     const escapeCell = value => `"${String(value ?? "").replace(/"/g, '""')}"`;
@@ -1597,21 +1490,12 @@ function downloadCSV() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'gate_sofia_responses_local.csv';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-    return;
-  }
-  fetch(CONFIG.SHEET_CSV_URL).then(r=>r.text()).then(csv=>{
-    const blob = new Blob([csv], {type:'text/csv'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
     a.download = 'gate_sofia_responses.csv';
     document.body.appendChild(a);
     a.click();
     setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  }).catch(error => {
+    console.error("CSV download failed:", error);
   });
 }
 
