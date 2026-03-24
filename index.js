@@ -436,6 +436,10 @@ function renderBackBtn() {
   btn.onclick = prevStep;
   wrap.appendChild(btn);
 
+  if (survey.currentStep === 6) {
+    return wrap;
+  }
+
   const nextBtn = document.createElement("button");
   nextBtn.className = "step-next-btn";
   const config = getStepNextConfig();
@@ -1152,9 +1156,9 @@ function renderFeedback() {
   contactRow.className = "input-row feedback-contact-row";
   contactRow.style.marginTop = "18px";
   contactRow.innerHTML = `
-    <label>Name (optional)</label>
+    <label>Name (optional - only if comfortable)</label>
     <input type="text" placeholder="Enter your name if you would like to share it" value="${survey.name || ""}" oninput="survey.name=this.value;saveSurvey();">
-    <label style="margin-top:8px;">Email (optional)</label>
+    <label style="margin-top:8px;">Email (optional - only if comfortable)</label>
     <input type="email" placeholder="Enter your email if you would like updates" value="${survey.email || ""}" oninput="survey.email=this.value;saveSurvey();">
   `;
   div.appendChild(contactRow);
@@ -1187,7 +1191,7 @@ function renderThankYou() {
     div.innerHTML = `
       <div class='thankyou-shell'>
         <div class='thankyou-hero'>
-          <div class='thankyou-check'>Done:)</div>
+          <div class='thankyou-check'>Done</div>
           <div class='thankyou-heading'>Thank you for your feedback!</div>
           <div class='thankyou-sub'>Your input directly shapes how the Gate Sofia Digital Twin develops for future users and research. Please wait for the AI summary of your responses.</div>
         </div>
@@ -1248,7 +1252,7 @@ function renderThankYou() {
   const nextBlock = document.createElement("div");
   nextBlock.className = "thankyou-next";
   nextBlock.innerHTML = `
-    <div class='thankyou-next-title'>What happens next</div>
+    <div class='thankyou-next-title'>What happens next?</div>
     <div class='thankyou-next-text'>Your responses will be reviewed as part of the evaluation of the Energy Digital Twin for Smart Building Management. We use this feedback to identify what is intuitive, what is confusing, and what needs redesign.</div>
   `;
   div.appendChild(nextBlock);
@@ -1262,6 +1266,16 @@ function renderThankYou() {
   share.className = "share-btn";
   share.textContent = "Share the digital twin";
   actionWrap.appendChild(share);
+
+  // LinkedIn button
+  const linkedin = document.createElement("a");
+  linkedin.href = "https://www.linkedin.com/in/joan-waithira/"; // Replace with correct LinkedIn if needed
+  linkedin.target = "_blank";
+  linkedin.rel = "noopener noreferrer";
+  linkedin.className = "linkedin-btn";
+  linkedin.textContent = "Contact Joan if you have further questions";
+  actionWrap.appendChild(linkedin);
+
   div.appendChild(actionWrap);
   return div;
 }
