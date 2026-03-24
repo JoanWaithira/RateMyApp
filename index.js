@@ -144,11 +144,13 @@ const TASK2_ROLE_MAP = {
     ]
   },
   worker: {
-    heading: "Check your room's air quality",
+    heading: "Play a room heatmap and find the extremes",
     instructions: [
       "Open the Replay panel",
       "Click the IAQ Rooms tab",
-      "Find the CO2 level for any room"
+      "Play one of the heatmaps on screen",
+      "Stop the heatmap at any moment",
+      "Identify the rooms with the lowest value and the room with the highest value"
     ]
   },
   visitor: {
@@ -1591,7 +1593,7 @@ function renderAdminContent(content, data, sourceLabel) {
     return {key:f.key,icon:f.icon,title:f.title,avg:vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0,count:vals.length};
   }).sort((a,b)=>b.avg-a.avg);
 
-  const taskNames = ["Find today's energy cost","Find room air quality","Find a what-if scenario"];
+  const taskNames = ["Find today's energy cost","Play a room heatmap and find the extremes","Find a what-if scenario"];
   const taskStats = [1,2,3].map(i=>{
     const easy = data.filter(r=>{
       try { return JSON.parse(r[`task${i}_result`]).completed===0; } catch { return false; }
