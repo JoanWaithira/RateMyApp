@@ -1187,9 +1187,9 @@ function renderThankYou() {
     div.innerHTML = `
       <div class='thankyou-shell'>
         <div class='thankyou-hero'>
-          <div class='thankyou-check'>Done</div>
+          <div class='thankyou-check'>Done:)</div>
           <div class='thankyou-heading'>Thank you for your feedback!</div>
-          <div class='thankyou-sub'>Your input directly shapes how the Gate Sofia Digital Twin develops for future users and research.</div>
+          <div class='thankyou-sub'>Your input directly shapes how the Gate Sofia Digital Twin develops for future users and research. Please wait for the AI summary of your responses.</div>
         </div>
         <div class='thankyou-loading'>
           <div class='thankyou-loading-title'>Preparing your personalised summary</div>
