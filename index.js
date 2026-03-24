@@ -1004,6 +1004,16 @@ function renderFeedback() {
     <textarea rows="2" oninput="survey.other=this.value;saveSurvey();">${survey.other||""}</textarea>
   `;
   div.appendChild(qRow);
+  const contactRow = document.createElement("div");
+  contactRow.className = "input-row feedback-contact-row";
+  contactRow.style.marginTop = "18px";
+  contactRow.innerHTML = `
+    <label>Name (optional)</label>
+    <input type="text" placeholder="Enter your name if you would like to share it" value="${survey.name || ""}" oninput="survey.name=this.value;saveSurvey();">
+    <label style="margin-top:8px;">Email (optional)</label>
+    <input type="email" placeholder="Enter your email if you would like updates" value="${survey.email || ""}" oninput="survey.email=this.value;saveSurvey();">
+  `;
+  div.appendChild(contactRow);
   // Continue button
   const btnRow = document.createElement("div");
   btnRow.className = "button-row";
@@ -1100,13 +1110,6 @@ function renderThankYou() {
   div.appendChild(nextBlock);
   const actionWrap = document.createElement("div");
   actionWrap.className = "thankyou-actions";
-  const nameRow = document.createElement("div");
-  nameRow.className = "thankyou-name-row";
-  nameRow.innerHTML = `
-    <label for="thankyou-name">Name (optional)</label>
-    <input id="thankyou-name" type="text" placeholder="Enter your name if you would like to share it" value="${survey.name || ""}" oninput="survey.name=this.value;saveSurvey();">
-  `;
-  actionWrap.appendChild(nameRow);
   // Share button
   const share = document.createElement("a");
   share.href = CONFIG.DIGITAL_TWIN_URL;
@@ -1115,20 +1118,6 @@ function renderThankYou() {
   share.className = "share-btn";
   share.textContent = "Share the digital twin";
   actionWrap.appendChild(share);
-  // Email notify
-  const notifyRow = document.createElement("div");
-  notifyRow.className = "notify-row";
-  notifyRow.innerHTML = `
-    <input type='email' placeholder='Your email (optional)' value='${survey.email||""}' oninput='survey.email=this.value;saveSurvey();'>
-    <button class='button' onclick='saveThankYouDetails(this)'>Save details</button>
-  `;
-  actionWrap.appendChild(notifyRow);
-  if (thankYouSaveMessage) {
-    const saveNote = document.createElement("div");
-    saveNote.className = `thankyou-save-note ${thankYouSaveTone}`;
-    saveNote.textContent = thankYouSaveMessage;
-    actionWrap.appendChild(saveNote);
-  }
   div.appendChild(actionWrap);
   return div;
 }
@@ -1269,6 +1258,145 @@ function renderAdminEmptyState(content, activeSource, title, detail, technicalNo
   `;
 }
 
+function escapeAdminHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatAdminCell(value, key) {
+  const raw = String(value ?? "").trim();
+  if (!raw) {
+    return "<span class='admin-cell-empty'>-</span>";
+  }
+
+  const isJson = /^[\[{]/.test(raw);
+  const isLong = raw.length > 90 || raw.includes("\n");
+  const className = [
+    "admin-cell-content",
+    isJson ? "admin-cell-code" : "",
+    isLong ? "admin-cell-multiline" : ""
+  ].filter(Boolean).join(" ");
+
+  return `
+    <div class='${className}' title="${escapeAdminHtml(raw)}" aria-label="${escapeAdminHtml(key.replace(/_/g, " "))}">
+      ${isJson ? "<span class='admin-cell-badge'>JSON</span>" : ""}
+      <span>${escapeAdminHtml(raw)}</span>
+    </div>
+  `;
+}
+
+function parseAdminJson(value) {
+  if (!value) return null;
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function orderAdminHeaders(headers) {
+  const priority = [
+    "created_at",
+    "started_at",
+    "role",
+    "name",
+    "email",
+    "overall_rating",
+    "would_use",
+    "most_useful",
+    "needs_work",
+    "what_worked",
+    "what_needed",
+    "ai_summary"
+  ];
+
+  return [
+    ...priority.filter(header => headers.includes(header)),
+    ...headers.filter(header => !priority.includes(header))
+  ];
+}
+
+function buildParticipantInsightCards(data) {
+  return data.slice().reverse().map((row, idx) => {
+    const role = ROLES.find(r => r.key === row.role);
+    const roleLabel = role ? `${role.icon} ${role.title}` : (row.role || "Unknown role");
+    const displayName = row.name || "Anonymous participant";
+    const contactBits = [
+      row.name ? "Name shared" : "No name shared",
+      row.email ? "Email shared" : "No email shared"
+    ];
+    const taskSummaries = [1, 2, 3].map(i => {
+      const task = parseAdminJson(row[`task${i}_result`]) || {};
+      const completedLabel = task.completed === 0
+        ? "Completed easily"
+        : task.completed === 1
+          ? "Completed with difficulty"
+          : task.completed === 2
+            ? "Could not complete"
+            : "No result";
+      const extra = [
+        task.time ? `Time: ${task.time}` : "",
+        task.scenario ? `Scenario: ${task.scenario}` : "",
+        task.note ? `Note: ${task.note}` : ""
+      ].filter(Boolean).join(" | ");
+      return `
+        <div class='admin-insight-task'>
+          <div class='admin-insight-task-title'>Task ${i}</div>
+          <div class='admin-insight-task-status'>${escapeAdminHtml(completedLabel)}</div>
+          ${extra ? `<div class='admin-insight-task-meta'>${escapeAdminHtml(extra)}</div>` : ""}
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <div class='admin-insight-card'>
+        <div class='admin-insight-header'>
+          <div>
+            <div class='admin-insight-name'>${escapeAdminHtml(displayName)}</div>
+            <div class='admin-insight-role'>${escapeAdminHtml(roleLabel)}</div>
+          </div>
+          <div class='admin-insight-index'>Response #${data.length - idx}</div>
+        </div>
+        <div class='admin-insight-meta'>
+          <span class='admin-insight-pill'>${escapeAdminHtml(contactBits.join(" • "))}</span>
+          ${row.email ? `<span class='admin-insight-pill'>${escapeAdminHtml(row.email)}</span>` : ""}
+          ${row.created_at ? `<span class='admin-insight-pill'>${escapeAdminHtml(new Date(row.created_at).toLocaleString())}</span>` : ""}
+        </div>
+        <div class='admin-insight-grid'>
+          <div class='admin-insight-block'>
+            <div class='admin-insight-label'>Overall</div>
+            <div class='admin-insight-value'>${escapeAdminHtml(String(row.overall_rating || "-"))}/5</div>
+          </div>
+          <div class='admin-insight-block'>
+            <div class='admin-insight-label'>Would Use</div>
+            <div class='admin-insight-value'>${escapeAdminHtml(row.would_use || "No answer")}</div>
+          </div>
+          <div class='admin-insight-block admin-insight-block-wide'>
+            <div class='admin-insight-label'>What Worked Best</div>
+            <div class='admin-insight-text'>${escapeAdminHtml(row.what_worked || row.most_useful || "No comment shared")}</div>
+          </div>
+          <div class='admin-insight-block admin-insight-block-wide'>
+            <div class='admin-insight-label'>Main Friction</div>
+            <div class='admin-insight-text'>${escapeAdminHtml(row.what_needed || row.needs_work || "No issue shared")}</div>
+          </div>
+          <div class='admin-insight-block admin-insight-block-wide'>
+            <div class='admin-insight-label'>Other Notes</div>
+            <div class='admin-insight-text'>${escapeAdminHtml(row.other_comments || "No extra comments")}</div>
+          </div>
+        </div>
+        <div class='admin-insight-tasks'>
+          ${taskSummaries}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
 function renderAdminContent(content, data, sourceLabel) {
   const total = data.length;
   if (!total) {
@@ -1281,7 +1409,14 @@ function renderAdminContent(content, data, sourceLabel) {
     return;
   }
 
-  const headers = Object.keys(data[0]);
+  const headers = orderAdminHeaders(Object.keys(data[0]));
+  const rawDataRows = data.map((row, rowIndex) => `
+    <tr>
+      <td class='admin-row-index'>${rowIndex + 1}</td>
+      ${headers.map(header => `<td class='${["name","email","role"].includes(header) ? "admin-col-highlight" : ""}'>${formatAdminCell(row[header], header)}</td>`).join("")}
+    </tr>
+  `).join("");
+  const participantInsightsMarkup = buildParticipantInsightCards(data);
   const overallRatings = data.map(r=>+r["overall_rating"]||0).filter(Boolean);
   const avgOverall = overallRatings.length ? (overallRatings.reduce((a,b)=>a+b,0)/overallRatings.length).toFixed(2) : "N/A";
   const starsDisplay = avgOverall !== "N/A" ? `${Math.round(+avgOverall)}/5` : "";
@@ -1419,13 +1554,32 @@ function renderAdminContent(content, data, sourceLabel) {
       <span class='section-icon'>Data</span> Raw Response Data
       <span class='section-badge'>${total} rows</span>
     </div>
-    <div style='overflow-x:auto;max-width:100%;'>
-      <table class='admin-table'>
-        <tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr>
-        ${data.map(r=>`<tr>${headers.map(h=>`<td>${r[h]||""}</td>`).join("")}</tr>`).join("")}
-      </table>
+    <div class='admin-table-shell'>
+      <div class='admin-table-toolbar'>
+        <div class='admin-table-title'>Research export view</div>
+        <div class='admin-table-note'>Hover any cell to see the full value. Long responses wrap automatically.</div>
+      </div>
+      <div class='admin-table-wrap'>
+        <table class='admin-table admin-raw-table'>
+          <tr>
+            <th class='admin-row-index'>#</th>
+            ${headers.map(h=>`<th class='${["name","email","role"].includes(h) ? "admin-col-highlight" : ""}'>${escapeAdminHtml(h.replace(/_/g, " "))}</th>`).join("")}
+          </tr>
+          ${rawDataRows}
+        </table>
+      </div>
     </div>
-    <button class='admin-download-btn' onclick='downloadCSV()'>Download CSV</button>
+    <div class='admin-download-row'>
+      <button class='admin-download-btn' onclick='downloadCSV()'>Download CSV</button>
+    </div>
+    <div class='admin-subsection-divider'></div>
+    <div class='admin-section-header admin-section-header-secondary'>
+      <span class='section-icon'>Sense</span> Interpreted Participant Responses
+      <span class='section-badge'>${total} cards</span>
+    </div>
+    <div class='admin-insight-list'>
+      ${participantInsightsMarkup}
+    </div>
   </div>`;
 
   content.innerHTML = html;
