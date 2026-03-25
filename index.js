@@ -354,7 +354,6 @@ function handleStartOver() {
 function render() {
   const app = document.getElementById("app");
   if (!app) return;
-  document.body.classList.toggle("admin-mode", Boolean(window.location.search.includes("admin=true")));
   app.innerHTML = "";
   // Logo/branding
   app.appendChild(renderLogo());
@@ -1835,6 +1834,116 @@ function renderAdminContent(content, data, sourceLabel) {
 
   html += buildBackendStatusMarkup(sourceLabel, total);
 
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      Participant Roles
+      <span class='section-badge'>${total} total</span>
+    </div>
+    <div class='admin-role-chart'>
+      ${ROLES.map(r=>{
+        const count = roleCounts[r.key];
+        const pct = total > 0 ? Math.round(100*count/total) : 0;
+        const barH = Math.max(4, Math.round(90 * count / maxRoleCount));
+        return `<div class='admin-role-col-wrap'>
+          <div class='admin-role-count'>${count}</div>
+          <div class='admin-role-pct'>${pct}%</div>
+          <div class='admin-role-bar' style='height:${barH}px' title='${r.title}: ${count} response(s)'></div>
+          <div class='admin-role-label'><br>${r.title.split(" ").slice(0,2).join(" ")}</div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>Feature Ratings
+      <span class='section-badge'>sorted by avg</span>
+    </div>
+    ${featureStats.map(f=>{
+      const barW = f.avg > 0 ? Math.round(100*f.avg/5) : 0;
+      const color = ratingColor(f.avg);
+      return `<div class='admin-feature-row'>
+        <span class='admin-feature-icon'>${f.icon}</span>
+        <span class='admin-feature-name'>${f.title}</span>
+        <div class='admin-feature-bar-wrap'>
+          <div class='admin-feature-bar-fill' style='width:${barW}%;background:${color}'></div>
+        </div>
+        <span class='admin-feature-score' style='color:${color}'>${f.avg>0?f.avg.toFixed(2):"-"}/5</span>
+        <span class='admin-feature-count'>${f.count} rated</span>
+      </div>`;
+    }).join("")}
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      <span class='section-icon'>Task</span> Task Completion - "Completed Easily" Rate
+    </div>
+    ${taskStats.map((pct,i)=>`
+      <div class='admin-task-row'>
+        <div class='admin-task-header'>
+          <span class='admin-task-label'>Task ${i+1}: ${taskNames[i]||""}</span>
+          <span class='admin-task-pct'>${pct}%</span>
+        </div>
+        <div class='admin-task-progress'>
+          <div class='admin-task-progress-fill' style='width:${pct}%'></div>
+        </div>
+        <div class='admin-task-desc'>${data.filter(r=>{ try{return JSON.parse(r[`task${i+1}_result`]).completed===0;}catch{return false;} }).length} out of ${total} respondents completed this easily</div>
+      </div>
+    `).join("")}
+  </div>`;
+
+  if (validSummaries.length) {
+    html += `<div class='admin-section'>
+      <div class='admin-section-header'>
+        <span class='section-icon'>AI</span> Recent AI-Generated Summaries
+        <span class='section-badge'>last ${validSummaries.length}</span>
+      </div>
+      ${validSummaries.map(s=>{
+        const role = ROLES.find(r=>r.key===s.role);
+        return `<div class='admin-summary-card'>
+          <div class='admin-summary-card-header'>
+            <span>${role?.icon || ""}</span>
+            <span class='admin-summary-role'>${role?role.title:s.role}</span>
+            <span class='admin-summary-idx'>Response #${s.idx}</span>
+          </div>
+          <div class='admin-summary-text'>${s.summary}</div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  }
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      <span class='section-icon'>Data</span> Raw Response Data
+      <span class='section-badge'>${total} rows</span>
+    </div>
+    <div class='admin-table-shell'>
+      <div class='admin-table-toolbar'>
+        <div class='admin-table-title'>Research export view</div>
+        <div class='admin-table-note'>Hover any cell to see the full value. Long responses wrap automatically.</div>
+      </div>
+      <div class='admin-table-wrap'>
+        <table class='admin-table admin-raw-table'>
+          <tr>
+            <th class='admin-row-index'>#</th>
+            ${headers.map(h=>`<th class='${["name","email","role"].includes(h) ? "admin-col-highlight" : ""}'>${escapeAdminHtml(h.replace(/_/g, " "))}</th>`).join("")}
+          </tr>
+          ${rawDataRows}
+        </table>
+      </div>
+    </div>
+    <div class='admin-download-row'>
+      <button class='admin-download-btn' onclick='downloadCSV()'>Download CSV</button>
+    </div>
+    <div class='admin-subsection-divider'></div>
+    <div class='admin-section-header admin-section-header-secondary'>
+      <span class='section-icon'>Sense</span> Interpreted Participant Responses
+      <span class='section-badge'>${total} cards</span>
+    </div>
+    <div class='admin-insight-list'>
+      ${participantInsightsMarkup}
+    </div>
+  </div>`;
+
   html += `
     <div class='admin-stats-grid'>
       <div class='admin-stat-card'>
@@ -1893,45 +2002,6 @@ function renderAdminContent(content, data, sourceLabel) {
 
   html += `<div class='admin-section'>
     <div class='admin-section-header'>
-      Participant Roles
-      <span class='section-badge'>${total} total</span>
-    </div>
-    <div class='admin-role-chart'>
-      ${ROLES.map(r=>{
-        const count = roleCounts[r.key];
-        const pct = total > 0 ? Math.round(100*count/total) : 0;
-        const barH = Math.max(4, Math.round(90 * count / maxRoleCount));
-        return `<div class='admin-role-col-wrap'>
-          <div class='admin-role-count'>${count}</div>
-          <div class='admin-role-pct'>${pct}%</div>
-          <div class='admin-role-bar' style='height:${barH}px' title='${r.title}: ${count} response(s)'></div>
-          <div class='admin-role-label'><br>${r.title.split(" ").slice(0,2).join(" ")}</div>
-        </div>`;
-      }).join("")}
-    </div>
-  </div>`;
-
-  html += `<div class='admin-section'>
-    <div class='admin-section-header'>Feature Ratings
-      <span class='section-badge'>sorted by avg</span>
-    </div>
-    ${featureStats.map(f=>{
-      const barW = f.avg > 0 ? Math.round(100*f.avg/5) : 0;
-      const color = ratingColor(f.avg);
-      return `<div class='admin-feature-row'>
-        <span class='admin-feature-icon'>${f.icon}</span>
-        <span class='admin-feature-name'>${f.title}</span>
-        <div class='admin-feature-bar-wrap'>
-          <div class='admin-feature-bar-fill' style='width:${barW}%;background:${color}'></div>
-        </div>
-        <span class='admin-feature-score' style='color:${color}'>${f.avg>0?f.avg.toFixed(2):"-"}/5</span>
-        <span class='admin-feature-count'>${f.count} rated</span>
-      </div>`;
-    }).join("")}
-  </div>`;
-
-  html += `<div class='admin-section'>
-    <div class='admin-section-header'>
       Stakeholder interaction by feature
       <span class='section-badge'>supplementary evidence</span>
     </div>
@@ -1975,24 +2045,6 @@ function renderAdminContent(content, data, sourceLabel) {
 
   html += `<div class='admin-section'>
     <div class='admin-section-header'>
-      <span class='section-icon'>Task</span> Task Completion - "Completed Easily" Rate
-    </div>
-    ${taskStats.map((pct,i)=>`
-      <div class='admin-task-row'>
-        <div class='admin-task-header'>
-          <span class='admin-task-label'>Task ${i+1}: ${taskNames[i]||""}</span>
-          <span class='admin-task-pct'>${pct}%</span>
-        </div>
-        <div class='admin-task-progress'>
-          <div class='admin-task-progress-fill' style='width:${pct}%'></div>
-        </div>
-        <div class='admin-task-desc'>${data.filter(r=>{ try{return JSON.parse(r[`task${i+1}_result`]).completed===0;}catch{return false;} }).length} out of ${total} respondents completed this easily</div>
-      </div>
-    `).join("")}
-  </div>`;
-
-  html += `<div class='admin-section'>
-    <div class='admin-section-header'>
       Stakeholder evidence by role
       <span class='section-badge'>comparative view</span>
     </div>
@@ -2011,59 +2063,6 @@ function renderAdminContent(content, data, sourceLabel) {
           </div>
         </div>
       `).join("")}
-    </div>
-  </div>`;
-
-  if (validSummaries.length) {
-    html += `<div class='admin-section'>
-      <div class='admin-section-header'>
-        <span class='section-icon'>AI</span> Recent AI-Generated Summaries
-        <span class='section-badge'>last ${validSummaries.length}</span>
-      </div>
-      ${validSummaries.map(s=>{
-        const role = ROLES.find(r=>r.key===s.role);
-        return `<div class='admin-summary-card'>
-          <div class='admin-summary-card-header'>
-            <span>${role?.icon || ""}</span>
-            <span class='admin-summary-role'>${role?role.title:s.role}</span>
-            <span class='admin-summary-idx'>Response #${s.idx}</span>
-          </div>
-          <div class='admin-summary-text'>${s.summary}</div>
-        </div>`;
-      }).join("")}
-    </div>`;
-  }
-
-  html += `<div class='admin-section'>
-    <div class='admin-section-header'>
-      <span class='section-icon'>Data</span> Raw Response Data
-      <span class='section-badge'>${total} rows</span>
-    </div>
-    <div class='admin-table-shell'>
-      <div class='admin-table-toolbar'>
-        <div class='admin-table-title'>Research export view</div>
-        <div class='admin-table-note'>Hover any cell to see the full value. Long responses wrap automatically.</div>
-      </div>
-      <div class='admin-table-wrap'>
-        <table class='admin-table admin-raw-table'>
-          <tr>
-            <th class='admin-row-index'>#</th>
-            ${headers.map(h=>`<th class='${["name","email","role"].includes(h) ? "admin-col-highlight" : ""}'>${escapeAdminHtml(h.replace(/_/g, " "))}</th>`).join("")}
-          </tr>
-          ${rawDataRows}
-        </table>
-      </div>
-    </div>
-    <div class='admin-download-row'>
-      <button class='admin-download-btn' onclick='downloadCSV()'>Download CSV</button>
-    </div>
-    <div class='admin-subsection-divider'></div>
-    <div class='admin-section-header admin-section-header-secondary'>
-      <span class='section-icon'>Sense</span> Interpreted Participant Responses
-      <span class='section-badge'>${total} cards</span>
-    </div>
-    <div class='admin-insight-list'>
-      ${participantInsightsMarkup}
     </div>
   </div>`;
 
@@ -2163,7 +2162,6 @@ window.addEventListener("keydown", e => {
 // Admin password modal
 function showAdminPasswordModal() {
   const app = document.getElementById("app");
-  document.body.classList.add("admin-mode");
   app.innerHTML = `
     <div class='admin-password-modal'>
       <div class='admin-password-box'>
@@ -2196,7 +2194,4 @@ function isAdmin() {
 }
 // Clear admin flag on every unload so login is required each visit
 window.addEventListener("beforeunload", () => sessionStorage.removeItem("admin_ok"));
-window.addEventListener("popstate", () => {
-  document.body.classList.toggle("admin-mode", Boolean(window.location.search.includes("admin=true")));
-});
   
