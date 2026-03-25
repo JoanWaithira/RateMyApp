@@ -1391,7 +1391,9 @@ function buildBackendStatusMarkup(activeSource, responseCount) {
       <div class='admin-section-header'>
         Backend Status
         <span class='section-badge'>${activeSource}</span>
+        ${renderAdminInfoButton("backend", "Backend status shows whether the dashboard successfully loaded data from the connected source. Active means the current source provided the rows shown on screen.")}
       </div>
+      ${renderAdminInfoPanel("backend", "Backend status shows whether the dashboard successfully loaded data from the connected source. Active means the current source provided the rows shown on screen.")}
       <div class='admin-status-grid'>
         ${statuses.map(item => `
           <div class='admin-status-card ${item.active ? "active" : ""}'>
@@ -1519,6 +1521,18 @@ function getPercent(count, total) {
   return Math.round((count / total) * 100);
 }
 
+function escapeAdminAttr(value) {
+  return escapeAdminHtml(value).replace(/\n/g, "&#10;");
+}
+
+function renderAdminInfoButton(id, text) {
+  return `<button type="button" class="admin-info-btn" aria-expanded="false" aria-controls="admin-info-${id}" onclick="toggleAdminInfo('${id}', this)" title="Show explanation" data-info-text="${escapeAdminAttr(text)}">i</button>`;
+}
+
+function renderAdminInfoPanel(id, text) {
+  return `<div id="admin-info-${id}" class="admin-info-panel" hidden>${escapeAdminHtml(text)}</div>`;
+}
+
 function buildPieChartSvg(items, options = {}) {
   const size = options.size || 180;
   const strokeWidth = options.strokeWidth || 24;
@@ -1568,6 +1582,21 @@ function buildPieChartSvg(items, options = {}) {
       <text x="${center}" y="${center + 16}" text-anchor="middle" class="admin-pie-label">${options.label || "Responses"}</text>
     </svg>
   `;
+}
+
+function toggleAdminInfo(id, button) {
+  const panel = document.getElementById(`admin-info-${id}`);
+  if (!panel || !button) return;
+  const isHidden = panel.hasAttribute("hidden");
+  if (isHidden) {
+    panel.removeAttribute("hidden");
+    button.setAttribute("aria-expanded", "true");
+    button.classList.add("active");
+  } else {
+    panel.setAttribute("hidden", "");
+    button.setAttribute("aria-expanded", "false");
+    button.classList.remove("active");
+  }
 }
 
 function formatSessionMinutes(startedAt, createdAt) {
@@ -1909,6 +1938,24 @@ function renderAdminContent(content, data, sourceLabel) {
   const validSummaries = summaries.filter(s=>s.summary && s.summary.trim().length>10);
 
   let html = "";
+  const info = {
+    summaryStats: "These four cards summarise the dataset: total submissions, mean overall score, how many stakeholder roles are represented, and the share who completed Task 1 easily.",
+    backend: "Backend status shows whether the dashboard successfully loaded data from the connected source. Active means the current source provided the rows shown on screen.",
+    roles: "Participant Roles counts how many responses came from each stakeholder group. The bar height is proportional to the number of responses in that role.",
+    featureRatings: "Feature Ratings uses the average 1 to 5 usefulness scores given by participants. Higher values mean the feature was rated more positively overall.",
+    taskCompletion: "Task Completion reports the percentage of participants who marked each task as 'Completed easily'. It uses only the saved task outcome values.",
+    aiSummaries: "AI summaries are short generated recaps of recent responses. They help you scan themes quickly, but the raw responses remain the primary evidence.",
+    rawData: "Raw Response Data is the full stored dataset exactly as saved by the survey. It is useful for checking, exporting, and tracing every result back to the source row.",
+    interpretedCards: "Interpreted Participant Responses reorganise each row into a more readable card. The interaction score is shown here because it combines multiple signals from the same response.",
+    interactionStats: "These cards summarise stakeholder interaction evidence. Completed All Tasks means all 3 tasks were answered, Rated All Features means all 8 feature ratings were filled, and Left Written Reflection means the participant wrote at least one open comment.",
+    thesisEvidence: "Thesis-ready evidence groups the strongest interaction signals: task completion, full feature rating, scenario judgement, and measurable session timing from started_at to created_at.",
+    featureInteraction: "Stakeholder interaction by feature compares how often each feature was chosen as 'most useful' versus how often it was selected as needing improvement.",
+    findings: "Research findings snapshot is a compact narrative summary built from the current response set: strongest feature, highest improvement demand, and adoption signal.",
+    roleEvidence: "Stakeholder evidence by role compares response quality across roles using task completion, average overall rating, stated future use, and mean interaction score.",
+    graphs: "Response graphs visualise the same stored answers. Longer bars or larger pie slices mean more responses in that category.",
+    interactionScore: "Interaction score is calculated from 7 yes/no signals in one response: answered all 3 tasks, completed at least 2 tasks, rated all features, left written reflection, judged the scenario task, gave an overall rating, and had a measurable session length. Score = achieved signals divided by 7, shown as a percentage."
+  };
+  html += `<div class='admin-floating-info-row'>${renderAdminInfoButton("summary-stats", info.summaryStats)}</div>`;
   html += `
     <div class='admin-stats-grid'>
       <div class='admin-stat-card'>
@@ -1932,6 +1979,7 @@ function renderAdminContent(content, data, sourceLabel) {
         <div class='admin-stat-sub'>completed without difficulty</div>
       </div>
     </div>`;
+  html += renderAdminInfoPanel("summary-stats", info.summaryStats);
 
   html += buildBackendStatusMarkup(sourceLabel, total);
 
@@ -1939,7 +1987,9 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-section-header'>
       Participant Roles
       <span class='section-badge'>${total} total</span>
+      ${renderAdminInfoButton("roles", info.roles)}
     </div>
+    ${renderAdminInfoPanel("roles", info.roles)}
     <div class='admin-section-note'>Shows how many responses came from each stakeholder group. Taller bars mean more participants from that role.</div>
     <div class='admin-role-chart'>
       ${ROLES.map(r=>{
@@ -1959,7 +2009,9 @@ function renderAdminContent(content, data, sourceLabel) {
   html += `<div class='admin-section'>
     <div class='admin-section-header'>Feature Ratings
       <span class='section-badge'>sorted by avg</span>
+      ${renderAdminInfoButton("feature-ratings", info.featureRatings)}
     </div>
+    ${renderAdminInfoPanel("feature-ratings", info.featureRatings)}
     <div class='admin-section-note'>Average usefulness rating for each platform feature. Longer bars and warmer scores indicate stronger feedback.</div>
     ${featureStats.map(f=>{
       const barW = f.avg > 0 ? Math.round(100*f.avg/5) : 0;
@@ -1979,7 +2031,9 @@ function renderAdminContent(content, data, sourceLabel) {
   html += `<div class='admin-section'>
     <div class='admin-section-header'>
       <span class='section-icon'>Task</span> Task Completion - "Completed Easily" Rate
+      ${renderAdminInfoButton("task-completion", info.taskCompletion)}
     </div>
+    ${renderAdminInfoPanel("task-completion", info.taskCompletion)}
     <div class='admin-section-note'>Shows how easily participants completed the guided tasks. Higher percentages suggest clearer navigation and better usability.</div>
     ${taskStats.map((pct,i)=>`
       <div class='admin-task-row'>
@@ -2000,7 +2054,9 @@ function renderAdminContent(content, data, sourceLabel) {
       <div class='admin-section-header'>
         <span class='section-icon'>AI</span> Recent AI-Generated Summaries
         <span class='section-badge'>last ${validSummaries.length}</span>
+        ${renderAdminInfoButton("ai-summaries", info.aiSummaries)}
       </div>
+      ${renderAdminInfoPanel("ai-summaries", info.aiSummaries)}
       <div class='admin-section-note'>Short AI recaps of recent responses. Useful for scanning common themes before reading the raw comments.</div>
       ${validSummaries.map(s=>{
         const role = ROLES.find(r=>r.key===s.role);
@@ -2020,7 +2076,9 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-section-header'>
       <span class='section-icon'>Data</span> Raw Response Data
       <span class='section-badge'>${total} rows</span>
+      ${renderAdminInfoButton("raw-data", info.rawData)}
     </div>
+    ${renderAdminInfoPanel("raw-data", info.rawData)}
     <div class='admin-section-note'>The full response dataset exactly as stored. Use this for detailed checking, export, and research traceability.</div>
     <div class='admin-table-shell'>
       <div class='admin-table-toolbar'>
@@ -2044,13 +2102,16 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-section-header admin-section-header-secondary'>
       <span class='section-icon'>Sense</span> Interpreted Participant Responses
       <span class='section-badge'>${total} cards</span>
+      ${renderAdminInfoButton("interpreted-cards", `${info.interpretedCards}\n\n${info.interactionScore}`)}
     </div>
+    ${renderAdminInfoPanel("interpreted-cards", `${info.interpretedCards}\n\n${info.interactionScore}`)}
     <div class='admin-section-note'>A cleaner participant-by-participant summary. Interaction score estimates how much evidence each response provides of real platform use.</div>
     <div class='admin-insight-list'>
       ${participantInsightsMarkup}
     </div>
   </div>`;
 
+  html += `<div class='admin-floating-info-row'>${renderAdminInfoButton("interaction-stats", `${info.interactionStats}\n\n${info.interactionScore}`)}</div>`;
   html += `
     <div class='admin-stats-grid'>
       <div class='admin-stat-card'>
@@ -2074,12 +2135,15 @@ function renderAdminContent(content, data, sourceLabel) {
         <div class='admin-stat-sub'>shared qualitative evidence for analysis</div>
       </div>
     </div>`;
+  html += renderAdminInfoPanel("interaction-stats", `${info.interactionStats}\n\n${info.interactionScore}`);
 
   html += `<div class='admin-section'>
     <div class='admin-section-header'>
       Thesis-ready evidence
       <span class='section-badge'>interaction proof</span>
+      ${renderAdminInfoButton("thesis-evidence", info.thesisEvidence)}
     </div>
+    ${renderAdminInfoPanel("thesis-evidence", info.thesisEvidence)}
     <div class='admin-section-note'>High-level indicators you can cite to show that stakeholders did not only answer opinions, but actually worked through tasks and feature feedback.</div>
     <div class='admin-evidence-grid'>
       <div class='admin-evidence-card'>
@@ -2112,7 +2176,9 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-section-header'>
       Stakeholder interaction by feature
       <span class='section-badge'>supplementary evidence</span>
+      ${renderAdminInfoButton("feature-interaction", info.featureInteraction)}
     </div>
+    ${renderAdminInfoPanel("feature-interaction", info.featureInteraction)}
     <div class='admin-section-note'>Compares which features were chosen most often as useful and which were flagged most often for improvement.</div>
     ${featureStats.map(f=>{
       const featureMeta = getFeatureMeta(f.key);
@@ -2132,7 +2198,9 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-section-header'>
       Research findings snapshot
       <span class='section-badge'>for thesis write-up</span>
+      ${renderAdminInfoButton("findings", info.findings)}
     </div>
+    ${renderAdminInfoPanel("findings", info.findings)}
     <div class='admin-section-note'>Condensed takeaways from the collected responses. Useful for a quick narrative summary of strengths, weaknesses, and adoption interest.</div>
     <div class='admin-findings-grid'>
       <div class='admin-finding-card'>
@@ -2157,7 +2225,9 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-section-header'>
       Stakeholder evidence by role
       <span class='section-badge'>comparative view</span>
+      ${renderAdminInfoButton("role-evidence", info.roleEvidence)}
     </div>
+    ${renderAdminInfoPanel("role-evidence", info.roleEvidence)}
     <div class='admin-section-note'>Compares response quality and adoption signals across stakeholder groups so you can discuss differences between roles.</div>
     <div class='admin-role-evidence-list'>
       ${analytics.roleBreakdown.map(item => `
@@ -2181,7 +2251,9 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-section-header'>
       Response graphs
       <span class='section-badge'>visual analysis</span>
+      ${renderAdminInfoButton("graphs", info.graphs)}
     </div>
+    ${renderAdminInfoPanel("graphs", info.graphs)}
     <div class='admin-section-note'>Visual summaries of response patterns. Longer bars mean more responses in that category.</div>
     <div class='admin-inline-legend'>
       <span><i style='background:linear-gradient(90deg, #f59e0b, #fbbf24)'></i> Overall rating distribution</span>
