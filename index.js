@@ -1889,6 +1889,7 @@ function renderAdminContent(content, data, sourceLabel) {
       Participant Roles
       <span class='section-badge'>${total} total</span>
     </div>
+    <div class='admin-section-note'>Shows how many responses came from each stakeholder group. Taller bars mean more participants from that role.</div>
     <div class='admin-role-chart'>
       ${ROLES.map(r=>{
         const count = roleCounts[r.key];
@@ -1908,6 +1909,7 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-section-header'>Feature Ratings
       <span class='section-badge'>sorted by avg</span>
     </div>
+    <div class='admin-section-note'>Average usefulness rating for each platform feature. Longer bars and warmer scores indicate stronger feedback.</div>
     ${featureStats.map(f=>{
       const barW = f.avg > 0 ? Math.round(100*f.avg/5) : 0;
       const color = ratingColor(f.avg);
@@ -1927,6 +1929,7 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-section-header'>
       <span class='section-icon'>Task</span> Task Completion - "Completed Easily" Rate
     </div>
+    <div class='admin-section-note'>Shows how easily participants completed the guided tasks. Higher percentages suggest clearer navigation and better usability.</div>
     ${taskStats.map((pct,i)=>`
       <div class='admin-task-row'>
         <div class='admin-task-header'>
@@ -1941,12 +1944,13 @@ function renderAdminContent(content, data, sourceLabel) {
     `).join("")}
   </div>`;
 
-  if (validSummaries.length) {
+    if (validSummaries.length) {
     html += `<div class='admin-section'>
       <div class='admin-section-header'>
         <span class='section-icon'>AI</span> Recent AI-Generated Summaries
         <span class='section-badge'>last ${validSummaries.length}</span>
       </div>
+      <div class='admin-section-note'>Short AI recaps of recent responses. Useful for scanning common themes before reading the raw comments.</div>
       ${validSummaries.map(s=>{
         const role = ROLES.find(r=>r.key===s.role);
         return `<div class='admin-summary-card'>
@@ -1966,6 +1970,7 @@ function renderAdminContent(content, data, sourceLabel) {
       <span class='section-icon'>Data</span> Raw Response Data
       <span class='section-badge'>${total} rows</span>
     </div>
+    <div class='admin-section-note'>The full response dataset exactly as stored. Use this for detailed checking, export, and research traceability.</div>
     <div class='admin-table-shell'>
       <div class='admin-table-toolbar'>
         <div class='admin-table-title'>Research export view</div>
@@ -1989,6 +1994,7 @@ function renderAdminContent(content, data, sourceLabel) {
       <span class='section-icon'>Sense</span> Interpreted Participant Responses
       <span class='section-badge'>${total} cards</span>
     </div>
+    <div class='admin-section-note'>A cleaner participant-by-participant summary. Interaction score estimates how much evidence each response provides of real platform use.</div>
     <div class='admin-insight-list'>
       ${participantInsightsMarkup}
     </div>
@@ -2023,6 +2029,7 @@ function renderAdminContent(content, data, sourceLabel) {
       Thesis-ready evidence
       <span class='section-badge'>interaction proof</span>
     </div>
+    <div class='admin-section-note'>High-level indicators you can cite to show that stakeholders did not only answer opinions, but actually worked through tasks and feature feedback.</div>
     <div class='admin-evidence-grid'>
       <div class='admin-evidence-card'>
         <div class='admin-evidence-label'>Task participation</div>
@@ -2055,6 +2062,7 @@ function renderAdminContent(content, data, sourceLabel) {
       Stakeholder interaction by feature
       <span class='section-badge'>supplementary evidence</span>
     </div>
+    <div class='admin-section-note'>Compares which features were chosen most often as useful and which were flagged most often for improvement.</div>
     ${featureStats.map(f=>{
       const featureMeta = getFeatureMeta(f.key);
       return `<div class='admin-feature-row'>
@@ -2074,6 +2082,7 @@ function renderAdminContent(content, data, sourceLabel) {
       Research findings snapshot
       <span class='section-badge'>for thesis write-up</span>
     </div>
+    <div class='admin-section-note'>Condensed takeaways from the collected responses. Useful for a quick narrative summary of strengths, weaknesses, and adoption interest.</div>
     <div class='admin-findings-grid'>
       <div class='admin-finding-card'>
         <div class='admin-finding-title'>Strongest perceived feature</div>
@@ -2098,6 +2107,7 @@ function renderAdminContent(content, data, sourceLabel) {
       Stakeholder evidence by role
       <span class='section-badge'>comparative view</span>
     </div>
+    <div class='admin-section-note'>Compares response quality and adoption signals across stakeholder groups so you can discuss differences between roles.</div>
     <div class='admin-role-evidence-list'>
       ${analytics.roleBreakdown.map(item => `
         <div class='admin-role-evidence-card'>
@@ -2121,9 +2131,20 @@ function renderAdminContent(content, data, sourceLabel) {
       Response graphs
       <span class='section-badge'>visual analysis</span>
     </div>
+    <div class='admin-section-note'>Visual summaries of response patterns. Longer bars mean more responses in that category.</div>
+    <div class='admin-inline-legend'>
+      <span><i style='background:linear-gradient(90deg, #f59e0b, #fbbf24)'></i> Overall rating distribution</span>
+      <span><i style='background:linear-gradient(90deg, #2563eb, #60a5fa)'></i> Adoption and feature-interest bars</span>
+      <span><i style='background:linear-gradient(90deg, #0f766e, #2dd4bf)'></i> Interaction score spread</span>
+      <span><i style='background:#16a34a'></i> Easy</span>
+      <span><i style='background:#f59e0b'></i> Difficult</span>
+      <span><i style='background:#dc2626'></i> Not completed</span>
+      <span><i style='background:#94a3b8'></i> No result</span>
+    </div>
     <div class='admin-graph-grid'>
       <div class='admin-graph-card'>
         <div class='admin-graph-title'>Overall rating distribution</div>
+        <div class='admin-section-note'>Amber bars show how many participants gave each overall score from 1 to 5.</div>
         <div class='admin-graph-stack'>
           ${analytics.overallDistribution.map(item => `
             <div class='admin-graph-bar-group'>
@@ -2140,6 +2161,7 @@ function renderAdminContent(content, data, sourceLabel) {
       </div>
       <div class='admin-graph-card'>
         <div class='admin-graph-title'>Daily-use intention</div>
+        <div class='admin-section-note'>Blue bars show whether participants said they would use the system in daily work.</div>
         <div class='admin-graph-stack'>
           ${analytics.wouldUseDistribution.map(item => `
             <div class='admin-graph-bar-group'>
@@ -2158,6 +2180,7 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-graph-grid admin-graph-grid-secondary'>
       <div class='admin-graph-card admin-graph-card-wide'>
         <div class='admin-graph-title'>Task outcome comparison</div>
+        <div class='admin-section-note'>Each stacked bar shows the mix of easy, difficult, failed, and missing outcomes for each task.</div>
         <div class='admin-task-outcome-list'>
           ${analytics.taskOutcomeDistributions.map(item => {
             const easyPct = getPercent(item.outcomes.easy, total);
@@ -2189,6 +2212,7 @@ function renderAdminContent(content, data, sourceLabel) {
       </div>
       <div class='admin-graph-card'>
         <div class='admin-graph-title'>Interaction score spread</div>
+        <div class='admin-section-note'>Teal bars group participants by how much evidence their responses provide of meaningful interaction.</div>
         <div class='admin-graph-stack'>
           ${analytics.interactionBuckets.map(item => `
             <div class='admin-graph-bar-group'>

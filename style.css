@@ -1476,6 +1476,37 @@
       padding: 2px 10px;
       letter-spacing: 0.03em;
     }
+    .admin-section-note {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin: -2px 0 14px;
+    }
+    .admin-inline-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .admin-inline-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f8fafc;
+      border: 1px solid rgba(148,163,184,0.18);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .admin-inline-legend i {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
     .admin-status-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
