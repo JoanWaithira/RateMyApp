@@ -1417,6 +1417,53 @@
       color: #94a3b8;
       margin-top: 2px;
     }
+    .admin-evidence-grid,
+    .admin-findings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .admin-evidence-card,
+    .admin-finding-card,
+    .admin-role-evidence-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      border: 1px solid rgba(37,99,235,0.12);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(15,23,42,0.05);
+    }
+    .admin-evidence-label,
+    .admin-finding-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .admin-evidence-value,
+    .admin-finding-value {
+      font-size: 1.7rem;
+      line-height: 1.1;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .admin-evidence-text,
+    .admin-finding-text {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .admin-thesis-note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: linear-gradient(90deg, rgba(37,99,235,0.08), rgba(255,255,255,0.88));
+      border: 1px solid rgba(37,99,235,0.1);
+      color: var(--text);
+      line-height: 1.7;
+    }
     .admin-section {
       background: #ffffff;
       border: 1.5px solid var(--border);
@@ -1692,6 +1739,11 @@
       font-size: 12px;
       font-weight: 600;
     }
+    .admin-insight-pill.strong {
+      background: linear-gradient(90deg, rgba(37,99,235,0.16), rgba(59,130,246,0.08));
+      border-color: rgba(37,99,235,0.2);
+      color: #1d4ed8;
+    }
     .admin-insight-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1746,6 +1798,13 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .admin-insight-task-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.45;
       margin-bottom: 6px;
     }
     .admin-insight-task-status {
@@ -1753,6 +1812,47 @@
       font-weight: 700;
       color: var(--text);
       margin-bottom: 4px;
+    }
+    .admin-role-evidence-list {
+      display: grid;
+      gap: 12px;
+    }
+    .admin-role-evidence-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .admin-role-evidence-title {
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .admin-role-evidence-pill {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1d4ed8;
+      background: #dbeafe;
+      border-radius: 999px;
+      padding: 4px 10px;
+      white-space: nowrap;
+    }
+    .admin-role-evidence-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .admin-role-evidence-metrics span {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f8fafc;
+      border: 1px solid rgba(148,163,184,0.18);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
     }
     .admin-insight-task-meta {
       font-size: 12px;

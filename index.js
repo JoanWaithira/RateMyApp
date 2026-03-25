@@ -1482,33 +1482,229 @@ function orderAdminHeaders(headers) {
   ];
 }
 
+function getFeatureMeta(key) {
+  if (key === "other") {
+    return { icon: "📝", title: "Other" };
+  }
+  return FEATURES.find(feature => feature.key === key) || { icon: "•", title: key || "Not selected" };
+}
+
+function getTaskTitle(taskNumber, roleKey = "") {
+  if (taskNumber === 1) return TASKS[0].heading;
+  if (taskNumber === 2) return (TASK2_ROLE_MAP[roleKey]?.heading || "Role-specific discovery task");
+  if (taskNumber === 3) return TASKS[2].heading;
+  return `Task ${taskNumber}`;
+}
+
+function getTaskCompletionText(value) {
+  if (value === 0) return "Completed easily";
+  if (value === 1) return "Completed with difficulty";
+  if (value === 2) return "Could not complete";
+  return "No result";
+}
+
+function getTaskTimeText(value) {
+  return ["Under 30s", "30s-1min", "Over 1 min"][value] || "";
+}
+
+function getScenarioSenseText(value) {
+  return ["Yes", "Mostly", "Not really"][value] || "";
+}
+
+function getWouldUseText(value) {
+  return ["Yes, regularly", "Yes, occasionally", "Probably not", "No"][value] || "No answer";
+}
+
+function formatSessionMinutes(startedAt, createdAt) {
+  if (!startedAt || !createdAt) return null;
+  const started = new Date(startedAt).getTime();
+  const created = new Date(createdAt).getTime();
+  if (!Number.isFinite(started) || !Number.isFinite(created) || created <= started) return null;
+  const mins = Math.round((created - started) / 60000);
+  if (mins <= 0 || mins > 180) return null;
+  return mins;
+}
+
+function getResponseTextEntries(row) {
+  const featureCommentCount = FEATURES.filter(feature => String(row[`rating_${feature.key}`] || "").trim()).length;
+  const textEntries = [
+    row.what_worked,
+    row.what_needed,
+    row.other_comments,
+    row.ai_summary,
+    ...FEATURES.map(feature => row[`comment_${feature.key}`])
+  ].filter(value => String(value || "").trim());
+
+  return {
+    featureCommentCount,
+    textEntries,
+    substantialCount: textEntries.filter(value => String(value).trim().length >= 20).length
+  };
+}
+
+function getInteractionEvidence(row) {
+  const tasks = [1, 2, 3].map(index => parseAdminJson(row[`task${index}_result`]) || {});
+  const tasksAnswered = tasks.filter(task => task.completed !== null && task.completed !== undefined).length;
+  const tasksCompleted = tasks.filter(task => task.completed === 0 || task.completed === 1).length;
+  const tasksCompletedEasily = tasks.filter(task => task.completed === 0).length;
+  const ratingsGiven = FEATURES.filter(feature => Number(row[`rating_${feature.key}`]) > 0).length;
+  const text = getResponseTextEntries(row);
+  const hasWrittenReflection = Boolean(
+    String(row.what_worked || "").trim() ||
+    String(row.what_needed || "").trim() ||
+    String(row.other_comments || "").trim()
+  );
+  const sessionMinutes = formatSessionMinutes(row.started_at, row.created_at);
+  const scenarioJudged = tasks[2]?.scenario !== null && tasks[2]?.scenario !== undefined;
+  const signals = [
+    tasksAnswered === 3,
+    tasksCompleted >= 2,
+    ratingsGiven === FEATURES.length,
+    hasWrittenReflection,
+    scenarioJudged,
+    Number(row.overall_rating) > 0,
+    sessionMinutes !== null
+  ];
+  const interactionScore = Math.round((signals.filter(Boolean).length / signals.length) * 100);
+
+  return {
+    tasks,
+    tasksAnswered,
+    tasksCompleted,
+    tasksCompletedEasily,
+    ratingsGiven,
+    hasWrittenReflection,
+    substantialCommentCount: text.substantialCount,
+    sessionMinutes,
+    scenarioJudged,
+    interactionScore
+  };
+}
+
+function buildAdminAnalytics(data) {
+  const featureChoiceCounts = FEATURES.reduce((acc, feature) => {
+    acc[feature.key] = { mostUseful: 0, needsWork: 0 };
+    return acc;
+  }, { other: { mostUseful: 0, needsWork: 0 } });
+
+  const roleBreakdown = ROLES.map(role => {
+    const rows = data.filter(row => row.role === role.key);
+    const evidence = rows.map(getInteractionEvidence);
+    const adoptionPositive = rows.filter(row => {
+      const idx = Number(row.would_use);
+      return idx === 0 || idx === 1;
+    }).length;
+    const avgOverall = rows.length
+      ? (rows.reduce((sum, row) => sum + (Number(row.overall_rating) || 0), 0) / rows.length).toFixed(2)
+      : "-";
+    const completedAllTasks = evidence.filter(item => item.tasksAnswered === 3).length;
+
+    return {
+      role,
+      count: rows.length,
+      avgOverall,
+      adoptionPositive,
+      completedAllTasks,
+      interactionAvg: rows.length
+        ? Math.round(evidence.reduce((sum, item) => sum + item.interactionScore, 0) / rows.length)
+        : 0
+    };
+  });
+
+  const evidence = data.map(getInteractionEvidence);
+  const completedAllTasks = evidence.filter(item => item.tasksAnswered === 3).length;
+  const completedAtLeastTwoTasks = evidence.filter(item => item.tasksCompleted >= 2).length;
+  const ratedAllFeatures = evidence.filter(item => item.ratingsGiven === FEATURES.length).length;
+  const leftWrittenReflection = evidence.filter(item => item.hasWrittenReflection).length;
+  const scenarioJudged = evidence.filter(item => item.scenarioJudged).length;
+  const measurableSessions = evidence.filter(item => item.sessionMinutes !== null);
+  const avgInteractionScore = evidence.length
+    ? Math.round(evidence.reduce((sum, item) => sum + item.interactionScore, 0) / evidence.length)
+    : 0;
+  const avgTasksAnswered = evidence.length
+    ? (evidence.reduce((sum, item) => sum + item.tasksAnswered, 0) / evidence.length).toFixed(1)
+    : "0.0";
+  const avgSessionMinutes = measurableSessions.length
+    ? Math.round(measurableSessions.reduce((sum, item) => sum + item.sessionMinutes, 0) / measurableSessions.length)
+    : null;
+
+  data.forEach(row => {
+    const usefulKey = row.most_useful || "";
+    const needsKey = row.needs_work || "";
+    if (featureChoiceCounts[usefulKey]) featureChoiceCounts[usefulKey].mostUseful += 1;
+    if (featureChoiceCounts[needsKey]) featureChoiceCounts[needsKey].needsWork += 1;
+  });
+
+  const adoptionCounts = {
+    regularly: data.filter(row => Number(row.would_use) === 0).length,
+    occasionally: data.filter(row => Number(row.would_use) === 1).length,
+    probablyNot: data.filter(row => Number(row.would_use) === 2).length,
+    no: data.filter(row => Number(row.would_use) === 3).length
+  };
+
+  const featureStats = FEATURES.map(feature => {
+    const vals = data.map(row => Number(row[`rating_${feature.key}`]) || 0).filter(Boolean);
+    return {
+      key: feature.key,
+      icon: feature.icon,
+      title: feature.title,
+      avg: vals.length ? vals.reduce((sum, value) => sum + value, 0) / vals.length : 0,
+      count: vals.length,
+      mostUsefulCount: featureChoiceCounts[feature.key]?.mostUseful || 0,
+      needsWorkCount: featureChoiceCounts[feature.key]?.needsWork || 0
+    };
+  }).sort((a, b) => b.avg - a.avg);
+
+  const strongestFeature = [...featureStats].sort((a, b) => {
+    if (b.mostUsefulCount !== a.mostUsefulCount) return b.mostUsefulCount - a.mostUsefulCount;
+    return b.avg - a.avg;
+  })[0];
+  const weakestFeature = [...featureStats].sort((a, b) => {
+    if (b.needsWorkCount !== a.needsWorkCount) return b.needsWorkCount - a.needsWorkCount;
+    return a.avg - b.avg;
+  })[0];
+
+  return {
+    evidence,
+    roleBreakdown,
+    completedAllTasks,
+    completedAtLeastTwoTasks,
+    ratedAllFeatures,
+    leftWrittenReflection,
+    scenarioJudged,
+    avgInteractionScore,
+    avgTasksAnswered,
+    avgSessionMinutes,
+    adoptionCounts,
+    featureStats,
+    strongestFeature,
+    weakestFeature
+  };
+}
+
 function buildParticipantInsightCards(data) {
   return data.slice().reverse().map((row, idx) => {
     const role = ROLES.find(r => r.key === row.role);
     const roleLabel = role ? `${role.icon} ${role.title}` : (row.role || "Unknown role");
     const displayName = row.name || "Anonymous participant";
+    const evidence = getInteractionEvidence(row);
+    const sessionLabel = evidence.sessionMinutes !== null ? `${evidence.sessionMinutes} min session` : "Session length unavailable";
     const contactBits = [
       row.name ? "Name shared" : "No name shared",
       row.email ? "Email shared" : "No email shared"
     ];
     const taskSummaries = [1, 2, 3].map(i => {
-      const task = parseAdminJson(row[`task${i}_result`]) || {};
-      const completedLabel = task.completed === 0
-        ? "Completed easily"
-        : task.completed === 1
-          ? "Completed with difficulty"
-          : task.completed === 2
-            ? "Could not complete"
-            : "No result";
+      const task = evidence.tasks[i - 1] || {};
       const extra = [
-        task.time ? `Time: ${task.time}` : "",
-        task.scenario ? `Scenario: ${task.scenario}` : "",
+        i < 3 ? (task.time !== null && task.time !== undefined ? `Time: ${getTaskTimeText(task.time)}` : "") : "",
+        i === 3 ? (task.scenario !== null && task.scenario !== undefined ? `Scenario sense: ${getScenarioSenseText(task.scenario)}` : "") : "",
         task.note ? `Note: ${task.note}` : ""
       ].filter(Boolean).join(" | ");
       return `
         <div class='admin-insight-task'>
           <div class='admin-insight-task-title'>Task ${i}</div>
-          <div class='admin-insight-task-status'>${escapeAdminHtml(completedLabel)}</div>
+          <div class='admin-insight-task-name'>${escapeAdminHtml(getTaskTitle(i, row.role))}</div>
+          <div class='admin-insight-task-status'>${escapeAdminHtml(getTaskCompletionText(task.completed))}</div>
           ${extra ? `<div class='admin-insight-task-meta'>${escapeAdminHtml(extra)}</div>` : ""}
         </div>
       `;
@@ -1524,6 +1720,10 @@ function buildParticipantInsightCards(data) {
           <div class='admin-insight-index'>Response #${data.length - idx}</div>
         </div>
         <div class='admin-insight-meta'>
+          <span class='admin-insight-pill strong'>Interaction score ${evidence.interactionScore}%</span>
+          <span class='admin-insight-pill'>${escapeAdminHtml(`${evidence.tasksAnswered}/3 tasks answered`)}</span>
+          <span class='admin-insight-pill'>${escapeAdminHtml(`${evidence.ratingsGiven}/${FEATURES.length} features rated`)}</span>
+          <span class='admin-insight-pill'>${escapeAdminHtml(sessionLabel)}</span>
           <span class='admin-insight-pill'>${escapeAdminHtml(contactBits.join(" • "))}</span>
           ${row.email ? `<span class='admin-insight-pill'>${escapeAdminHtml(row.email)}</span>` : ""}
           ${row.created_at ? `<span class='admin-insight-pill'>${escapeAdminHtml(new Date(row.created_at).toLocaleString())}</span>` : ""}
@@ -1535,7 +1735,11 @@ function buildParticipantInsightCards(data) {
           </div>
           <div class='admin-insight-block'>
             <div class='admin-insight-label'>Would Use</div>
-            <div class='admin-insight-value'>${escapeAdminHtml(row.would_use || "No answer")}</div>
+            <div class='admin-insight-value'>${escapeAdminHtml(getWouldUseText(Number(row.would_use)))}</div>
+          </div>
+          <div class='admin-insight-block'>
+            <div class='admin-insight-label'>Interaction Proof</div>
+            <div class='admin-insight-value'>${escapeAdminHtml(`${evidence.tasksCompleted} tasks completed, ${evidence.substantialCommentCount} substantial comments`)}</div>
           </div>
           <div class='admin-insight-block admin-insight-block-wide'>
             <div class='admin-insight-label'>What Worked Best</div>
@@ -1571,6 +1775,7 @@ function renderAdminContent(content, data, sourceLabel) {
   }
 
   const headers = orderAdminHeaders(Object.keys(data[0]));
+  const analytics = buildAdminAnalytics(data);
   const rawDataRows = data.map((row, rowIndex) => `
     <tr>
       <td class='admin-row-index'>${rowIndex + 1}</td>
@@ -1589,10 +1794,7 @@ function renderAdminContent(content, data, sourceLabel) {
 
   const withSummary = data.filter(r=>r["ai_summary"] && r["ai_summary"].trim().length > 10).length;
 
-  const featureStats = FEATURES.map(f=>{
-    const vals = data.map(r=>+r[`rating_${f.key}`]||0).filter(Boolean);
-    return {key:f.key,icon:f.icon,title:f.title,avg:vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0,count:vals.length};
-  }).sort((a,b)=>b.avg-a.avg);
+  const featureStats = analytics.featureStats;
 
   const taskNames = ["Find today's energy cost","Play a room heatmap and find the extremes","Find a what-if scenario"];
   const taskStats = [1,2,3].map(i=>{
@@ -1611,7 +1813,7 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-stats-grid'>
       <div class='admin-stat-card'>
         <div class='admin-stat-value'>${total}</div>
-        <div class='admin-stat-label'>Total Responses</div>
+        <div class='admin-stat-label'>Stakeholder Responses</div>
         <div class='admin-stat-sub'>${withSummary} with AI summary</div>
       </div>
       <div class='admin-stat-card'>
@@ -1625,13 +1827,45 @@ function renderAdminContent(content, data, sourceLabel) {
         <div class='admin-stat-sub'>out of ${ROLES.length} total roles</div>
       </div>
       <div class='admin-stat-card'>
-        <div class='admin-stat-value'>${taskStats[0]}%</div>
-        <div class='admin-stat-label'>Task 1 Easy Rate</div>
-        <div class='admin-stat-sub'>completed without difficulty</div>
+        <div class='admin-stat-value'>${analytics.avgInteractionScore}%</div>
+        <div class='admin-stat-label'>Interaction Evidence Score</div>
+        <div class='admin-stat-sub'>based on task, rating, and reflection signals</div>
       </div>
     </div>`;
 
   html += buildBackendStatusMarkup(sourceLabel, total);
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      Thesis-ready evidence
+      <span class='section-badge'>interaction proof</span>
+    </div>
+    <div class='admin-evidence-grid'>
+      <div class='admin-evidence-card'>
+        <div class='admin-evidence-label'>Task participation</div>
+        <div class='admin-evidence-value'>${analytics.completedAllTasks}/${total}</div>
+        <div class='admin-evidence-text'>completed all 3 guided validation tasks. Another ${analytics.completedAtLeastTwoTasks}/${total} completed at least 2 tasks.</div>
+      </div>
+      <div class='admin-evidence-card'>
+        <div class='admin-evidence-label'>Deep feedback</div>
+        <div class='admin-evidence-value'>${analytics.ratedAllFeatures}/${total}</div>
+        <div class='admin-evidence-text'>rated all ${FEATURES.length} core features, while ${analytics.leftWrittenReflection}/${total} left written reflections you can quote qualitatively.</div>
+      </div>
+      <div class='admin-evidence-card'>
+        <div class='admin-evidence-label'>Scenario engagement</div>
+        <div class='admin-evidence-value'>${analytics.scenarioJudged}/${total}</div>
+        <div class='admin-evidence-text'>judged whether the scenario result made sense, which is a direct sign they reached and interpreted the planning feature.</div>
+      </div>
+      <div class='admin-evidence-card'>
+        <div class='admin-evidence-label'>Measured sessions</div>
+        <div class='admin-evidence-value'>${analytics.avgSessionMinutes !== null ? `${analytics.avgSessionMinutes} min` : "-"}</div>
+        <div class='admin-evidence-text'>average observed response session across records with both start and submission timestamps. Mean tasks answered: ${analytics.avgTasksAnswered}/3.</div>
+      </div>
+    </div>
+    <div class='admin-thesis-note'>
+      These indicators help demonstrate that stakeholders did more than submit opinions: they navigated guided tasks, rated specific product features, and recorded reflective comments grounded in hands-on interaction.
+    </div>
+  </div>`;
 
   html += `<div class='admin-section'>
     <div class='admin-section-header'>
@@ -1667,9 +1901,33 @@ function renderAdminContent(content, data, sourceLabel) {
           <div class='admin-feature-bar-fill' style='width:${barW}%;background:${color}'></div>
         </div>
         <span class='admin-feature-score' style='color:${color}'>${f.avg>0?f.avg.toFixed(2):"-"}/5</span>
-        <span class='admin-feature-count'>${f.count} rated</span>
+        <span class='admin-feature-count'>${f.count} rated • ${f.mostUsefulCount} most useful • ${f.needsWorkCount} needs work</span>
       </div>`;
     }).join("")}
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      Research findings snapshot
+      <span class='section-badge'>for thesis write-up</span>
+    </div>
+    <div class='admin-findings-grid'>
+      <div class='admin-finding-card'>
+        <div class='admin-finding-title'>Strongest perceived feature</div>
+        <div class='admin-finding-value'>${escapeAdminHtml(`${analytics.strongestFeature?.icon || ""} ${analytics.strongestFeature?.title || "No data"}`)}</div>
+        <div class='admin-finding-text'>Average rating ${analytics.strongestFeature?.avg ? analytics.strongestFeature.avg.toFixed(2) : "-"} / 5 and selected as "most useful" by ${analytics.strongestFeature?.mostUsefulCount || 0} participant(s).</div>
+      </div>
+      <div class='admin-finding-card'>
+        <div class='admin-finding-title'>Highest improvement demand</div>
+        <div class='admin-finding-value'>${escapeAdminHtml(`${analytics.weakestFeature?.icon || ""} ${analytics.weakestFeature?.title || "No data"}`)}</div>
+        <div class='admin-finding-text'>Marked as needing the most improvement by ${analytics.weakestFeature?.needsWorkCount || 0} participant(s), with an average rating of ${analytics.weakestFeature?.avg ? analytics.weakestFeature.avg.toFixed(2) : "-"} / 5.</div>
+      </div>
+      <div class='admin-finding-card'>
+        <div class='admin-finding-title'>Adoption signal</div>
+        <div class='admin-finding-value'>${analytics.adoptionCounts.regularly + analytics.adoptionCounts.occasionally}/${total}</div>
+        <div class='admin-finding-text'>said they would use the system at least occasionally. Regular use: ${analytics.adoptionCounts.regularly}. Occasional use: ${analytics.adoptionCounts.occasionally}. Negative intent: ${analytics.adoptionCounts.probablyNot + analytics.adoptionCounts.no}.</div>
+      </div>
+    </div>
   </div>`;
 
   html += `<div class='admin-section'>
@@ -1688,6 +1946,29 @@ function renderAdminContent(content, data, sourceLabel) {
         <div class='admin-task-desc'>${data.filter(r=>{ try{return JSON.parse(r[`task${i+1}_result`]).completed===0;}catch{return false;} }).length} out of ${total} respondents completed this easily</div>
       </div>
     `).join("")}
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      Stakeholder evidence by role
+      <span class='section-badge'>comparative view</span>
+    </div>
+    <div class='admin-role-evidence-list'>
+      ${analytics.roleBreakdown.map(item => `
+        <div class='admin-role-evidence-card'>
+          <div class='admin-role-evidence-top'>
+            <div class='admin-role-evidence-title'>${escapeAdminHtml(`${item.role.icon} ${item.role.title}`)}</div>
+            <div class='admin-role-evidence-pill'>${item.count} response(s)</div>
+          </div>
+          <div class='admin-role-evidence-metrics'>
+            <span>All tasks answered: ${item.completedAllTasks}/${item.count || 0}</span>
+            <span>Avg overall: ${item.avgOverall}/5</span>
+            <span>Would use: ${item.adoptionPositive}/${item.count || 0}</span>
+            <span>Avg interaction score: ${item.interactionAvg}%</span>
+          </div>
+        </div>
+      `).join("")}
+    </div>
   </div>`;
 
   if (validSummaries.length) {
