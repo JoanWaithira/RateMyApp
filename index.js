@@ -1514,6 +1514,11 @@ function getWouldUseText(value) {
   return ["Yes, regularly", "Yes, occasionally", "Probably not", "No"][value] || "No answer";
 }
 
+function getPercent(count, total) {
+  if (!total) return 0;
+  return Math.round((count / total) * 100);
+}
+
 function formatSessionMinutes(startedAt, createdAt) {
   if (!startedAt || !createdAt) return null;
   const started = new Date(startedAt).getTime();
@@ -1663,6 +1668,47 @@ function buildAdminAnalytics(data) {
     return a.avg - b.avg;
   })[0];
 
+  const overallDistribution = [1, 2, 3, 4, 5].map(value => ({
+    value,
+    label: `${value}/5`,
+    count: data.filter(row => Number(row.overall_rating) === value).length
+  }));
+
+  const wouldUseDistribution = [
+    { key: "regularly", label: "Yes, regularly", count: adoptionCounts.regularly },
+    { key: "occasionally", label: "Yes, occasionally", count: adoptionCounts.occasionally },
+    { key: "probablyNot", label: "Probably not", count: adoptionCounts.probablyNot },
+    { key: "no", label: "No", count: adoptionCounts.no }
+  ];
+
+  const taskOutcomeDistributions = [1, 2, 3].map(taskNumber => {
+    const outcomes = { easy: 0, difficult: 0, failed: 0, noResult: 0 };
+    data.forEach(row => {
+      const task = parseAdminJson(row[`task${taskNumber}_result`]) || {};
+      if (task.completed === 0) outcomes.easy += 1;
+      else if (task.completed === 1) outcomes.difficult += 1;
+      else if (task.completed === 2) outcomes.failed += 1;
+      else outcomes.noResult += 1;
+    });
+    return {
+      taskNumber,
+      title: getTaskTitle(taskNumber),
+      outcomes
+    };
+  });
+
+  const interactionBuckets = [
+    { label: "0-39%", min: 0, max: 39, count: 0 },
+    { label: "40-59%", min: 40, max: 59, count: 0 },
+    { label: "60-79%", min: 60, max: 79, count: 0 },
+    { label: "80-100%", min: 80, max: 100, count: 0 }
+  ];
+
+  evidence.forEach(item => {
+    const bucket = interactionBuckets.find(entry => item.interactionScore >= entry.min && item.interactionScore <= entry.max);
+    if (bucket) bucket.count += 1;
+  });
+
   return {
     evidence,
     roleBreakdown,
@@ -1677,7 +1723,11 @@ function buildAdminAnalytics(data) {
     adoptionCounts,
     featureStats,
     strongestFeature,
-    weakestFeature
+    weakestFeature,
+    overallDistribution,
+    wouldUseDistribution,
+    taskOutcomeDistributions,
+    interactionBuckets
   };
 }
 
@@ -2063,6 +2113,96 @@ function renderAdminContent(content, data, sourceLabel) {
           </div>
         </div>
       `).join("")}
+    </div>
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      Response graphs
+      <span class='section-badge'>visual analysis</span>
+    </div>
+    <div class='admin-graph-grid'>
+      <div class='admin-graph-card'>
+        <div class='admin-graph-title'>Overall rating distribution</div>
+        <div class='admin-graph-stack'>
+          ${analytics.overallDistribution.map(item => `
+            <div class='admin-graph-bar-group'>
+              <div class='admin-graph-bar-track'>
+                <div class='admin-graph-bar-fill amber' style='width:${getPercent(item.count, total)}%'></div>
+              </div>
+              <div class='admin-graph-bar-meta'>
+                <span>${item.label}</span>
+                <span>${item.count} responses</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+      <div class='admin-graph-card'>
+        <div class='admin-graph-title'>Daily-use intention</div>
+        <div class='admin-graph-stack'>
+          ${analytics.wouldUseDistribution.map(item => `
+            <div class='admin-graph-bar-group'>
+              <div class='admin-graph-bar-track'>
+                <div class='admin-graph-bar-fill blue' style='width:${getPercent(item.count, total)}%'></div>
+              </div>
+              <div class='admin-graph-bar-meta'>
+                <span>${escapeAdminHtml(item.label)}</span>
+                <span>${item.count} responses</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+    <div class='admin-graph-grid admin-graph-grid-secondary'>
+      <div class='admin-graph-card admin-graph-card-wide'>
+        <div class='admin-graph-title'>Task outcome comparison</div>
+        <div class='admin-task-outcome-list'>
+          ${analytics.taskOutcomeDistributions.map(item => {
+            const easyPct = getPercent(item.outcomes.easy, total);
+            const difficultPct = getPercent(item.outcomes.difficult, total);
+            const failedPct = getPercent(item.outcomes.failed, total);
+            const noResultPct = getPercent(item.outcomes.noResult, total);
+            return `
+              <div class='admin-task-outcome-row'>
+                <div class='admin-task-outcome-header'>
+                  <span>${escapeAdminHtml(`Task ${item.taskNumber}`)}</span>
+                  <span>${escapeAdminHtml(item.title)}</span>
+                </div>
+                <div class='admin-task-outcome-track'>
+                  <div class='admin-task-outcome-segment easy' style='width:${easyPct}%'></div>
+                  <div class='admin-task-outcome-segment difficult' style='width:${difficultPct}%'></div>
+                  <div class='admin-task-outcome-segment failed' style='width:${failedPct}%'></div>
+                  <div class='admin-task-outcome-segment empty' style='width:${noResultPct}%'></div>
+                </div>
+                <div class='admin-task-outcome-legend'>
+                  <span>Easy ${item.outcomes.easy}</span>
+                  <span>Difficult ${item.outcomes.difficult}</span>
+                  <span>Not completed ${item.outcomes.failed}</span>
+                  <span>No result ${item.outcomes.noResult}</span>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+      <div class='admin-graph-card'>
+        <div class='admin-graph-title'>Interaction score spread</div>
+        <div class='admin-graph-stack'>
+          ${analytics.interactionBuckets.map(item => `
+            <div class='admin-graph-bar-group'>
+              <div class='admin-graph-bar-track'>
+                <div class='admin-graph-bar-fill teal' style='width:${getPercent(item.count, total)}%'></div>
+              </div>
+              <div class='admin-graph-bar-meta'>
+                <span>${item.label}</span>
+                <span>${item.count} participants</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
     </div>
   </div>`;
 

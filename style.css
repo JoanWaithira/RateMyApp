@@ -1834,6 +1834,106 @@
       font-size: 12px;
       font-weight: 600;
     }
+    .admin-graph-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .admin-graph-grid-secondary {
+      grid-template-columns: 1.4fr 1fr;
+      margin-bottom: 0;
+    }
+    .admin-graph-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      border: 1px solid rgba(37,99,235,0.12);
+      border-radius: 16px;
+      padding: 16px;
+      min-width: 0;
+    }
+    .admin-graph-card-wide {
+      min-width: 0;
+    }
+    .admin-graph-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .admin-graph-stack {
+      display: grid;
+      gap: 12px;
+    }
+    .admin-graph-bar-group {
+      display: grid;
+      gap: 6px;
+    }
+    .admin-graph-bar-track,
+    .admin-task-outcome-track {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #e2e8f0;
+    }
+    .admin-graph-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+    }
+    .admin-graph-bar-fill.blue {
+      background: linear-gradient(90deg, #2563eb, #60a5fa);
+    }
+    .admin-graph-bar-fill.amber {
+      background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+    .admin-graph-bar-fill.teal {
+      background: linear-gradient(90deg, #0f766e, #2dd4bf);
+    }
+    .admin-graph-bar-meta,
+    .admin-task-outcome-header,
+    .admin-task-outcome-legend {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .admin-task-outcome-list {
+      display: grid;
+      gap: 14px;
+    }
+    .admin-task-outcome-row {
+      display: grid;
+      gap: 8px;
+    }
+    .admin-task-outcome-header span:first-child {
+      font-weight: 700;
+      color: var(--text);
+    }
+    .admin-task-outcome-track {
+      display: flex;
+      height: 14px;
+    }
+    .admin-task-outcome-segment {
+      height: 100%;
+    }
+    .admin-task-outcome-segment.easy {
+      background: #16a34a;
+    }
+    .admin-task-outcome-segment.difficult {
+      background: #f59e0b;
+    }
+    .admin-task-outcome-segment.failed {
+      background: #dc2626;
+    }
+    .admin-task-outcome-segment.empty {
+      background: #94a3b8;
+    }
+    .admin-task-outcome-legend {
+      flex-wrap: wrap;
+    }
     .admin-insight-task-meta {
       font-size: 12px;
       line-height: 1.5;
@@ -1864,6 +1964,10 @@
       }
       .admin-insight-header {
         flex-direction: column;
+      }
+      .admin-graph-grid,
+      .admin-graph-grid-secondary {
+        grid-template-columns: 1fr;
       }
     }
     /* Role bar chart */
