@@ -1871,6 +1871,12 @@
       gap: 14px;
       margin-bottom: 14px;
     }
+    .admin-pie-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
     .admin-graph-grid-secondary {
       grid-template-columns: 1.4fr 1fr;
       margin-bottom: 0;
@@ -1892,6 +1898,53 @@
       text-transform: uppercase;
       color: var(--muted);
       margin-bottom: 14px;
+    }
+    .admin-pie-layout {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 18px;
+      align-items: center;
+    }
+    .admin-pie-svg {
+      width: 180px;
+      height: 180px;
+      overflow: visible;
+    }
+    .admin-pie-segment {
+      stroke-linecap: butt;
+    }
+    .admin-pie-total {
+      font-size: 1.6rem;
+      font-weight: 700;
+      fill: var(--text);
+    }
+    .admin-pie-label {
+      font-size: 0.78rem;
+      fill: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .admin-pie-legend {
+      display: grid;
+      gap: 10px;
+    }
+    .admin-pie-legend-item {
+      display: grid;
+      grid-template-columns: 10px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .admin-pie-legend-item strong {
+      color: var(--text);
+      font-size: 12px;
+    }
+    .admin-pie-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
     }
     .admin-graph-stack {
       display: grid;
@@ -1996,9 +2049,14 @@
       .admin-insight-header {
         flex-direction: column;
       }
+      .admin-pie-grid,
       .admin-graph-grid,
       .admin-graph-grid-secondary {
         grid-template-columns: 1fr;
+      }
+      .admin-pie-layout {
+        grid-template-columns: 1fr;
+        justify-items: center;
       }
     }
     /* Role bar chart */

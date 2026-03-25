@@ -1519,6 +1519,57 @@ function getPercent(count, total) {
   return Math.round((count / total) * 100);
 }
 
+function buildPieChartSvg(items, options = {}) {
+  const size = options.size || 180;
+  const strokeWidth = options.strokeWidth || 24;
+  const total = items.reduce((sum, item) => sum + (Number(item.count) || 0), 0);
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const center = size / 2;
+  let offset = 0;
+
+  const segments = total > 0
+    ? items.map(item => {
+        const count = Number(item.count) || 0;
+        const arc = (count / total) * circumference;
+        const dashArray = `${arc} ${Math.max(circumference - arc, 0)}`;
+        const dashOffset = -offset;
+        offset += arc;
+        return `
+          <circle
+            class="admin-pie-segment"
+            cx="${center}"
+            cy="${center}"
+            r="${radius}"
+            fill="none"
+            stroke="${item.color}"
+            stroke-width="${strokeWidth}"
+            stroke-dasharray="${dashArray}"
+            stroke-dashoffset="${dashOffset}"
+            transform="rotate(-90 ${center} ${center})"
+          ></circle>
+        `;
+      }).join("")
+    : "";
+
+  return `
+    <svg class="admin-pie-svg" viewBox="0 0 ${size} ${size}" aria-hidden="true">
+      <circle
+        cx="${center}"
+        cy="${center}"
+        r="${radius}"
+        fill="none"
+        stroke="#e2e8f0"
+        stroke-width="${strokeWidth}"
+      ></circle>
+      ${segments}
+      <circle cx="${center}" cy="${center}" r="${radius - strokeWidth / 2 + 2}" fill="#ffffff"></circle>
+      <text x="${center}" y="${center - 6}" text-anchor="middle" class="admin-pie-total">${total}</text>
+      <text x="${center}" y="${center + 16}" text-anchor="middle" class="admin-pie-label">${options.label || "Responses"}</text>
+    </svg>
+  `;
+}
+
 function formatSessionMinutes(startedAt, createdAt) {
   if (!startedAt || !createdAt) return null;
   const started = new Date(startedAt).getTime();
@@ -2140,6 +2191,52 @@ function renderAdminContent(content, data, sourceLabel) {
       <span><i style='background:#f59e0b'></i> Difficult</span>
       <span><i style='background:#dc2626'></i> Not completed</span>
       <span><i style='background:#94a3b8'></i> No result</span>
+    </div>
+    <div class='admin-pie-grid'>
+      <div class='admin-graph-card'>
+        <div class='admin-graph-title'>Overall ratings pie</div>
+        <div class='admin-section-note'>Each slice shows the share of participants who gave that overall score.</div>
+        <div class='admin-pie-layout'>
+          ${buildPieChartSvg(
+            analytics.overallDistribution.map((item, index) => ({
+              ...item,
+              color: ["#dc2626", "#f97316", "#f59e0b", "#84cc16", "#16a34a"][index]
+            })),
+            { label: "Ratings" }
+          )}
+          <div class='admin-pie-legend'>
+            ${analytics.overallDistribution.map((item, index) => `
+              <div class='admin-pie-legend-item'>
+                <span class='admin-pie-dot' style='background:${["#dc2626", "#f97316", "#f59e0b", "#84cc16", "#16a34a"][index]}'></span>
+                <span>${item.label}</span>
+                <strong>${item.count}</strong>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+      <div class='admin-graph-card'>
+        <div class='admin-graph-title'>Use-intention pie</div>
+        <div class='admin-section-note'>This shows the split between strong adoption, occasional use, and negative intent.</div>
+        <div class='admin-pie-layout'>
+          ${buildPieChartSvg(
+            analytics.wouldUseDistribution.map((item, index) => ({
+              ...item,
+              color: ["#16a34a", "#3b82f6", "#f59e0b", "#dc2626"][index]
+            })),
+            { label: "Intent" }
+          )}
+          <div class='admin-pie-legend'>
+            ${analytics.wouldUseDistribution.map((item, index) => `
+              <div class='admin-pie-legend-item'>
+                <span class='admin-pie-dot' style='background:${["#16a34a", "#3b82f6", "#f59e0b", "#dc2626"][index]}'></span>
+                <span>${escapeAdminHtml(item.label)}</span>
+                <strong>${item.count}</strong>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      </div>
     </div>
     <div class='admin-graph-grid'>
       <div class='admin-graph-card'>
