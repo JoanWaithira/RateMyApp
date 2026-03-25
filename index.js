@@ -354,6 +354,7 @@ function handleStartOver() {
 function render() {
   const app = document.getElementById("app");
   if (!app) return;
+  document.body.classList.toggle("admin-mode", Boolean(window.location.search.includes("admin=true")));
   app.innerHTML = "";
   // Logo/branding
   app.appendChild(renderLogo());
@@ -1838,6 +1839,7 @@ window.addEventListener("keydown", e => {
 // Admin password modal
 function showAdminPasswordModal() {
   const app = document.getElementById("app");
+  document.body.classList.add("admin-mode");
   app.innerHTML = `
     <div class='admin-password-modal'>
       <div class='admin-password-box'>
@@ -1870,4 +1872,7 @@ function isAdmin() {
 }
 // Clear admin flag on every unload so login is required each visit
 window.addEventListener("beforeunload", () => sessionStorage.removeItem("admin_ok"));
+window.addEventListener("popstate", () => {
+  document.body.classList.toggle("admin-mode", Boolean(window.location.search.includes("admin=true")));
+});
   
