@@ -1813,7 +1813,7 @@ function renderAdminContent(content, data, sourceLabel) {
     <div class='admin-stats-grid'>
       <div class='admin-stat-card'>
         <div class='admin-stat-value'>${total}</div>
-        <div class='admin-stat-label'>Stakeholder Responses</div>
+        <div class='admin-stat-label'>Total Responses</div>
         <div class='admin-stat-sub'>${withSummary} with AI summary</div>
       </div>
       <div class='admin-stat-card'>
@@ -1827,13 +1827,37 @@ function renderAdminContent(content, data, sourceLabel) {
         <div class='admin-stat-sub'>out of ${ROLES.length} total roles</div>
       </div>
       <div class='admin-stat-card'>
-        <div class='admin-stat-value'>${analytics.avgInteractionScore}%</div>
-        <div class='admin-stat-label'>Interaction Evidence Score</div>
-        <div class='admin-stat-sub'>based on task, rating, and reflection signals</div>
+        <div class='admin-stat-value'>${taskStats[0]}%</div>
+        <div class='admin-stat-label'>Task 1 Easy Rate</div>
+        <div class='admin-stat-sub'>completed without difficulty</div>
       </div>
     </div>`;
 
   html += buildBackendStatusMarkup(sourceLabel, total);
+
+  html += `
+    <div class='admin-stats-grid'>
+      <div class='admin-stat-card'>
+        <div class='admin-stat-value'>${analytics.avgInteractionScore}%</div>
+        <div class='admin-stat-label'>Interaction Evidence Score</div>
+        <div class='admin-stat-sub'>based on task, rating, and reflection signals</div>
+      </div>
+      <div class='admin-stat-card'>
+        <div class='admin-stat-value'>${analytics.completedAllTasks}/${total}</div>
+        <div class='admin-stat-label'>Completed All Tasks</div>
+        <div class='admin-stat-sub'>finished the 3 guided interaction tasks</div>
+      </div>
+      <div class='admin-stat-card'>
+        <div class='admin-stat-value'>${analytics.ratedAllFeatures}/${total}</div>
+        <div class='admin-stat-label'>Rated All Features</div>
+        <div class='admin-stat-sub'>gave full feature-level feedback</div>
+      </div>
+      <div class='admin-stat-card'>
+        <div class='admin-stat-value'>${analytics.leftWrittenReflection}/${total}</div>
+        <div class='admin-stat-label'>Left Written Reflection</div>
+        <div class='admin-stat-sub'>shared qualitative evidence for analysis</div>
+      </div>
+    </div>`;
 
   html += `<div class='admin-section'>
     <div class='admin-section-header'>
@@ -1901,7 +1925,26 @@ function renderAdminContent(content, data, sourceLabel) {
           <div class='admin-feature-bar-fill' style='width:${barW}%;background:${color}'></div>
         </div>
         <span class='admin-feature-score' style='color:${color}'>${f.avg>0?f.avg.toFixed(2):"-"}/5</span>
-        <span class='admin-feature-count'>${f.count} rated • ${f.mostUsefulCount} most useful • ${f.needsWorkCount} needs work</span>
+        <span class='admin-feature-count'>${f.count} rated</span>
+      </div>`;
+    }).join("")}
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      Stakeholder interaction by feature
+      <span class='section-badge'>supplementary evidence</span>
+    </div>
+    ${featureStats.map(f=>{
+      const featureMeta = getFeatureMeta(f.key);
+      return `<div class='admin-feature-row'>
+        <span class='admin-feature-icon'>${featureMeta.icon}</span>
+        <span class='admin-feature-name'>${featureMeta.title}</span>
+        <div class='admin-feature-bar-wrap'>
+          <div class='admin-feature-bar-fill' style='width:${Math.max(f.mostUsefulCount, f.needsWorkCount) > 0 ? Math.min(100, Math.max(f.mostUsefulCount, f.needsWorkCount) * 20) : 0}%;background:linear-gradient(90deg, #2563eb, #60a5fa)'></div>
+        </div>
+        <span class='admin-feature-score'>${f.mostUsefulCount} useful</span>
+        <span class='admin-feature-count'>${f.needsWorkCount} needs work</span>
       </div>`;
     }).join("")}
   </div>`;
