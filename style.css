@@ -1869,6 +1869,10 @@
       border-radius: 14px;
       padding: 14px 16px;
     }
+    .admin-insight-ai-summary.admin-insight-ai-summary-empty {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
     .admin-insight-ai-label {
       font-size: 11px;
       font-weight: 700;
@@ -1877,10 +1881,18 @@
       color: #16a34a;
       margin-bottom: 6px;
     }
+    .admin-insight-ai-summary-empty .admin-insight-ai-label {
+      color: var(--muted);
+    }
     .admin-insight-ai-text {
       font-size: 13.5px;
       color: var(--text);
       line-height: 1.6;
+    }
+    .admin-insight-ai-missing {
+      font-size: 13px;
+      color: var(--muted);
+      font-style: italic;
     }
     .admin-role-evidence-list {
       display: grid;
@@ -2272,6 +2284,16 @@
       font-size: 14px;
       color: var(--text);
       line-height: 1.65;
+    }
+    .admin-summary-card-empty {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+      opacity: 0.75;
+    }
+    .admin-summary-empty {
+      font-size: 13px;
+      color: var(--muted);
+      font-style: italic;
     }
     .admin-password-modal {
       background:

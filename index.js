@@ -1918,11 +1918,13 @@ function buildParticipantInsightCards(data) {
         <div class='admin-insight-tasks'>
           ${taskSummaries}
         </div>
-        ${row.ai_summary && row.ai_summary.trim().length > 10 ? `
-        <div class='admin-insight-ai-summary'>
+        <div class='admin-insight-ai-summary${row.ai_summary && row.ai_summary.trim().length > 10 ? "" : " admin-insight-ai-summary-empty"}'>
           <div class='admin-insight-ai-label'>🤖 AI Summary</div>
-          <div class='admin-insight-ai-text'>${escapeAdminHtml(row.ai_summary)}</div>
-        </div>` : ""}
+          ${row.ai_summary && row.ai_summary.trim().length > 10
+            ? `<div class='admin-insight-ai-text'>${escapeAdminHtml(row.ai_summary)}</div>`
+            : `<div class='admin-insight-ai-missing'>No AI summary was saved for this response.</div>`
+          }
+        </div>
       </div>
     `;
   }).join("");
@@ -2086,28 +2088,30 @@ function renderAdminContent(content, data, sourceLabel) {
     `).join("")}
   </div>`;
 
-    if (validSummaries.length) {
-    html += `<div class='admin-section'>
-      <div class='admin-section-header'>
-        <span class='section-icon'>AI</span> AI-Generated Summaries
-        <span class='section-badge'>${validSummaries.length} of ${total}</span>
-        ${renderAdminInfoButton("ai-summaries", info.aiSummaries)}
-      </div>
-      ${renderAdminInfoPanel("ai-summaries", info.aiSummaries)}
-      <div class='admin-section-note'>AI-generated recap for every response that completed the survey. Responses without a summary were submitted before AI generation ran or it failed.</div>
-      ${validSummaries.map(s=>{
-        const role = ROLES.find(r=>r.key===s.role);
-        return `<div class='admin-summary-card'>
-          <div class='admin-summary-card-header'>
-            <span>${role?.icon || ""}</span>
-            <span class='admin-summary-role'>${role?role.title:s.role}</span>
-            <span class='admin-summary-idx'>Response #${s.idx}</span>
-          </div>
-          <div class='admin-summary-text'>${s.summary}</div>
-        </div>`;
-      }).join("")}
-    </div>`;
-  }
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      <span class='section-icon'>AI</span> AI-Generated Summaries
+      <span class='section-badge'>${validSummaries.length} of ${total} have summaries</span>
+      ${renderAdminInfoButton("ai-summaries", info.aiSummaries)}
+    </div>
+    ${renderAdminInfoPanel("ai-summaries", info.aiSummaries)}
+    <div class='admin-section-note'>One AI-generated recap per response. Entries marked "No summary saved" were either submitted before the AI ran, or the save failed — the raw feedback is still recorded below.</div>
+    ${summaries.map(s=>{
+      const role = ROLES.find(r=>r.key===s.role);
+      const hasSummary = s.summary && s.summary.trim().length > 10;
+      return `<div class='admin-summary-card${hasSummary ? "" : " admin-summary-card-empty"}'>
+        <div class='admin-summary-card-header'>
+          <span>${role?.icon || ""}</span>
+          <span class='admin-summary-role'>${role ? role.title : (s.role || "Unknown role")}</span>
+          <span class='admin-summary-idx'>Response #${s.idx}</span>
+        </div>
+        ${hasSummary
+          ? `<div class='admin-summary-text'>${escapeAdminHtml(s.summary)}</div>`
+          : `<div class='admin-summary-empty'>No AI summary saved for this response.</div>`
+        }
+      </div>`;
+    }).join("")}
+  </div>`;
 
   html += `<div class='admin-section'>
     <div class='admin-section-header'>
