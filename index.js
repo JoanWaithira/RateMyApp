@@ -85,7 +85,6 @@ const TASKS = [
     instructions: [
       "Select a role that you feel best describes you or your perspective",
       "Zoom, rotate, and move around the 3D building model",
-      "Select a role-based view that matches your perspective",
       "Explore different areas of the building"
     ],
     followup: "Could you find and navigate to different areas easily?",
@@ -1510,7 +1509,7 @@ function getFeatureMeta(key) {
 
 function getTaskTitle(taskNumber, roleKey = "") {
   if (taskNumber === 1) return TASKS[0].heading;
-  if (taskNumber === 2) return (TASK2_ROLE_MAP[roleKey]?.heading || "Role-specific discovery task");
+  if (taskNumber === 2) return TASKS[1].heading;
   if (taskNumber === 3) return TASKS[2].heading;
   return `Task ${taskNumber}`;
 }
@@ -1527,7 +1526,7 @@ function getTaskTimeText(value) {
 }
 
 function getScenarioSenseText(value) {
-  return ["Yes", "Mostly", "Not really"][value] || "";
+  return ["Very helpful", "Somewhat helpful", "Not helpful"][value] || "";
 }
 
 function getWouldUseText(value) {
@@ -1844,7 +1843,7 @@ function buildParticipantInsightCards(data) {
       const task = evidence.tasks[i - 1] || {};
       const extra = [
         i < 3 ? (task.time !== null && task.time !== undefined ? `Time: ${getTaskTimeText(task.time)}` : "") : "",
-        i === 3 ? (task.scenario !== null && task.scenario !== undefined ? `Scenario sense: ${getScenarioSenseText(task.scenario)}` : "") : "",
+        i === 3 ? (task.scenario !== null && task.scenario !== undefined ? `AI support: ${getScenarioSenseText(task.scenario)}` : "") : "",
         task.note ? `Note: ${task.note}` : ""
       ].filter(Boolean).join(" | ");
       return `
@@ -1943,7 +1942,7 @@ function renderAdminContent(content, data, sourceLabel) {
 
   const featureStats = analytics.featureStats;
 
-  const taskNames = ["Find today's energy cost","Play a room heatmap and find the extremes","Find a what-if scenario"];
+  const taskLabels = [TASKS[0].heading, TASKS[1].heading, TASKS[2].heading];
   const taskStats = [1,2,3].map(i=>{
     const easy = data.filter(r=>{
       try { return JSON.parse(r[`task${i}_result`]).completed===0; } catch { return false; }
@@ -1957,21 +1956,21 @@ function renderAdminContent(content, data, sourceLabel) {
 
   let html = "";
   const info = {
-    summaryStats: "These four cards summarise the dataset: total submissions, mean overall score, how many stakeholder roles are represented, and the share who completed Task 1 easily.",
+    summaryStats: "These four cards summarise the dataset: total submissions, mean overall score, how many stakeholder roles are represented, and the share who completed the first task easily.",
     backend: "Backend status shows whether the dashboard successfully loaded data from the connected source. Active means the current source provided the rows shown on screen.",
     roles: "Participant Roles counts how many responses came from each stakeholder group. The bar height is proportional to the number of responses in that role.",
     featureRatings: "Feature Ratings uses the average 1 to 5 usefulness scores given by participants. Higher values mean the feature was rated more positively overall.",
-    taskCompletion: "Task Completion reports the percentage of participants who marked each task as 'Completed easily'. It uses only the saved task outcome values.",
+    taskCompletion: "Task Completion reports the percentage of participants who marked each of the three tasks as 'Completed easily'. It uses only the saved task outcome values.",
     aiSummaries: "AI summaries are short generated recaps of recent responses. They help you scan themes quickly, but the raw responses remain the primary evidence.",
     rawData: "Raw Response Data is the full stored dataset exactly as saved by the survey. It is useful for checking, exporting, and tracing every result back to the source row.",
     interpretedCards: "Interpreted Participant Responses reorganise each row into a more readable card. The interaction score is shown here because it combines multiple signals from the same response.",
     interactionStats: "These cards summarise stakeholder interaction evidence. Completed All Tasks means all 3 tasks were answered, Rated All Features means all 8 feature ratings were filled, and Left Written Reflection means the participant wrote at least one open comment.",
-    thesisEvidence: "Thesis-ready evidence groups the strongest interaction signals: task completion, full feature rating, scenario judgement, and measurable session timing from started_at to created_at.",
+    thesisEvidence: "Thesis-ready evidence groups the strongest interaction signals: task completion, full feature rating, AI decision-support judgement, and measurable session timing from started_at to created_at.",
     featureInteraction: "Stakeholder interaction by feature compares how often each feature was chosen as 'most useful' versus how often it was selected as needing improvement.",
     findings: "Research findings snapshot is a compact narrative summary built from the current response set: strongest feature, highest improvement demand, and adoption signal.",
     roleEvidence: "Stakeholder evidence by role compares response quality across roles using task completion, average overall rating, stated future use, and mean interaction score.",
     graphs: "Response graphs visualise the same stored answers. Longer bars or larger pie slices mean more responses in that category.",
-    interactionScore: "Interaction score is calculated from 7 yes/no signals in one response: answered all 3 tasks, completed at least 2 tasks, rated all features, left written reflection, judged the scenario task, gave an overall rating, and had a measurable session length. Score = achieved signals divided by 7, shown as a percentage."
+    interactionScore: "Interaction score is calculated from 7 yes/no signals in one response: answered all 3 tasks, completed at least 2 tasks, rated all features, left written reflection, answered the AI decision-support task, gave an overall rating, and had a measurable session length. Score = achieved signals divided by 7, shown as a percentage."
   };
   html += `<div class='admin-floating-info-row'>${renderAdminInfoButton("summary-stats", info.summaryStats)}</div>`;
   html += `
@@ -1994,7 +1993,7 @@ function renderAdminContent(content, data, sourceLabel) {
       <div class='admin-stat-card'>
         <div class='admin-stat-value'>${taskStats[0]}%</div>
         <div class='admin-stat-label'>Task 1 Easy Rate</div>
-        <div class='admin-stat-sub'>completed without difficulty</div>
+        <div class='admin-stat-sub'>${taskLabels[0]}</div>
       </div>
     </div>`;
   html += renderAdminInfoPanel("summary-stats", info.summaryStats);
@@ -2056,7 +2055,7 @@ function renderAdminContent(content, data, sourceLabel) {
     ${taskStats.map((pct,i)=>`
       <div class='admin-task-row'>
         <div class='admin-task-header'>
-          <span class='admin-task-label'>Task ${i+1}: ${taskNames[i]||""}</span>
+          <span class='admin-task-label'>Task ${i+1}: ${taskLabels[i]||""}</span>
           <span class='admin-task-pct'>${pct}%</span>
         </div>
         <div class='admin-task-progress'>
@@ -2175,9 +2174,9 @@ function renderAdminContent(content, data, sourceLabel) {
         <div class='admin-evidence-text'>rated all ${FEATURES.length} core features, while ${analytics.leftWrittenReflection}/${total} left written reflections you can quote qualitatively.</div>
       </div>
       <div class='admin-evidence-card'>
-        <div class='admin-evidence-label'>Scenario engagement</div>
+        <div class='admin-evidence-label'>AI support engagement</div>
         <div class='admin-evidence-value'>${analytics.scenarioJudged}/${total}</div>
-        <div class='admin-evidence-text'>judged whether the scenario result made sense, which is a direct sign they reached and interpreted the planning feature.</div>
+        <div class='admin-evidence-text'>answered the AI decision-support question, which shows they reached and interpreted the final task.</div>
       </div>
       <div class='admin-evidence-card'>
         <div class='admin-evidence-label'>Measured sessions</div>

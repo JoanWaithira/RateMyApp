@@ -29,6 +29,9 @@ create table if not exists public.survey_responses (
   email text
 );
 
+alter table public.survey_responses
+add column if not exists affiliation text;
+
 alter table public.survey_responses enable row level security;
 
 drop policy if exists "No direct public access" on public.survey_responses;
