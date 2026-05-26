@@ -73,24 +73,25 @@ exports.handler = async function handler(event) {
       };
     }
 
+    let secondarySaved = false;
+    let secondaryError = null;
+
     if (secondaryConfig) {
-      const secondaryResult = await saveToSupabase(secondaryConfig, payload);
-      if (!secondaryResult.ok) {
-        return {
-          statusCode: 502,
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            ok: false,
-            primarySaved: true,
-            secondarySaved: false,
-            message: "Saved to primary database, but secondary database write failed",
-            secondaryStatus: secondaryResult.status,
-            secondaryError: secondaryResult.body || "Secondary Supabase insert failed"
-          })
-        };
+      try {
+        const secondaryResult = await saveToSupabase(secondaryConfig, payload);
+        if (secondaryResult.ok) {
+          secondarySaved = true;
+        } else {
+          secondaryError = `HTTP ${secondaryResult.status}: ${secondaryResult.body || "Secondary Supabase insert failed"}`;
+          console.error("[save-response] Secondary database write failed:", secondaryError);
+        }
+      } catch (secondaryException) {
+        secondaryError = secondaryException.message || "Secondary Supabase request threw an exception";
+        console.error("[save-response] Secondary database exception:", secondaryError);
       }
+    } else {
+      secondaryError = "Secondary database is not configured (SUPABASE_URL_SECONDARY / SUPABASE_SERVICE_ROLE_KEY_SECONDARY env vars are missing)";
+      console.warn("[save-response]", secondaryError);
     }
 
     return {
@@ -101,7 +102,8 @@ exports.handler = async function handler(event) {
       body: JSON.stringify({
         ok: true,
         primarySaved: true,
-        secondarySaved: !!secondaryConfig
+        secondarySaved,
+        ...(secondaryError ? { secondaryError } : {})
       })
     };
   } catch (error) {

@@ -1198,7 +1198,15 @@ function renderFeedback() {
 function renderThankYou() {
   // Submit to Supabase once
   if (!window._submitted) {
-    saveRemoteSubmission().catch(error => {
+    saveRemoteSubmission().then(result => {
+      if (result && result.secondarySaved === false) {
+        console.warn(
+          "[RateMyApp] Response saved to PRIMARY database only. Secondary database was not written.\n" +
+          "Reason:", result.secondaryError || "Secondary database not configured or write failed.",
+          "\nCheck that SUPABASE_URL_SECONDARY and SUPABASE_SERVICE_ROLE_KEY_SECONDARY are set in your Netlify environment variables, and that the survey_responses table exists in the secondary project."
+        );
+      }
+    }).catch(error => {
       console.warn("Remote response save failed.", error);
     });
     window._submitted = true;
@@ -1223,7 +1231,14 @@ function renderThankYou() {
     generateAISummary().then(summary => {
       survey.aiSummary = summary;
       saveSurvey();
-      saveRemoteSubmission().catch(error => {
+      saveRemoteSubmission().then(result => {
+        if (result && result.secondarySaved === false) {
+          console.warn(
+            "[RateMyApp] AI-summary update saved to PRIMARY database only. Secondary database was not written.\n" +
+            "Reason:", result.secondaryError || "Secondary database not configured or write failed."
+          );
+        }
+      }).catch(error => {
         console.warn("Remote response update failed.", error);
       });
       render();
@@ -1903,6 +1918,11 @@ function buildParticipantInsightCards(data) {
         <div class='admin-insight-tasks'>
           ${taskSummaries}
         </div>
+        ${row.ai_summary && row.ai_summary.trim().length > 10 ? `
+        <div class='admin-insight-ai-summary'>
+          <div class='admin-insight-ai-label'>🤖 AI Summary</div>
+          <div class='admin-insight-ai-text'>${escapeAdminHtml(row.ai_summary)}</div>
+        </div>` : ""}
       </div>
     `;
   }).join("");
@@ -1950,7 +1970,7 @@ function renderAdminContent(content, data, sourceLabel) {
     return Math.round(100*easy/total);
   });
 
-  const summaries = data.slice(-5).reverse().map((r,i)=>({role:r["role"],summary:r["ai_summary"],idx:total-i}));
+  const summaries = data.slice().reverse().map((r,i)=>({role:r["role"],summary:r["ai_summary"],idx:total-i}));
   const maxRoleCount = Math.max(...ROLES.map(r=>roleCounts[r.key]), 1);
   const validSummaries = summaries.filter(s=>s.summary && s.summary.trim().length>10);
 
@@ -2069,12 +2089,12 @@ function renderAdminContent(content, data, sourceLabel) {
     if (validSummaries.length) {
     html += `<div class='admin-section'>
       <div class='admin-section-header'>
-        <span class='section-icon'>AI</span> Recent AI-Generated Summaries
-        <span class='section-badge'>last ${validSummaries.length}</span>
+        <span class='section-icon'>AI</span> AI-Generated Summaries
+        <span class='section-badge'>${validSummaries.length} of ${total}</span>
         ${renderAdminInfoButton("ai-summaries", info.aiSummaries)}
       </div>
       ${renderAdminInfoPanel("ai-summaries", info.aiSummaries)}
-      <div class='admin-section-note'>Short AI recaps of recent responses. Useful for scanning common themes before reading the raw comments.</div>
+      <div class='admin-section-note'>AI-generated recap for every response that completed the survey. Responses without a summary were submitted before AI generation ran or it failed.</div>
       ${validSummaries.map(s=>{
         const role = ROLES.find(r=>r.key===s.role);
         return `<div class='admin-summary-card'>
