@@ -1,6 +1,6 @@
 ﻿//  CONFIG 
 const CONFIG = {
-  DIGITAL_TWIN_URL:  "https://ai-building-silk.vercel.app/", // Replace with your Vercel app URL
+  DIGITAL_TWIN_URL:  "https://ai-building-silk.vercel.app/", 
   SUMMARY_ENDPOINT:  "/.netlify/functions/generate-summary",
   RESPONSE_SAVE_ENDPOINT: "/.netlify/functions/save-response",
   RESPONSE_LIST_ENDPOINT: "/.netlify/functions/list-responses",
@@ -81,87 +81,43 @@ const FEATURES = [
 const TASKS = [
   {
     key: "task1",
-    heading: "Find today's energy cost",
+    heading: "Explore the Building and Select a View",
     instructions: [
-      "Open the Replay panel (right side)",
-      "Click the Energy tab",
-      "Find the estimated cost figure"
+      "Select a role that you feel best describes you or your perspective",
+      "Zoom, rotate, and move around the 3D building model",
+      "Select a role-based view that matches your perspective",
+      "Explore different areas of the building"
     ],
-    followup: "How long did it take?",
-    followupOptions: ["Under 30s", "30s-1min", "Over 1 min"]
+    followup: "Could you find and navigate to different areas easily?",
+    followupOptions: ["Very easy", "Somewhat easy", "Difficult"]
   },
   {
     key: "task2",
-    heading: "",
-    instructions: [],
-    followup: "How long did it take?",
-    followupOptions: ["Under 30s", "30s-1min", "Over 1 min"]
+    heading: "Inspect Building Conditions Using Dashboards and Heatmaps",
+    instructions: [
+      "Click on the More Information + Replay button on the top right of your screen",
+      "Click on the circuit dropdown and select a circuit to inspect its energy use",
+      "Select the play button to replay the last 48 hours of the data and watch how conditions change over time",
+      "Click IAQ rooms and do the same for temperature, humidity, and CO₂ levels",
+      "View energy use, temperature, humidity, or CO₂ levels",
+      "Turn on a heatmap to see room-level performance and play the last 48 hours of data to see how it changes over time"
+    ],
+    followup: "Was it clear what the building conditions are?",
+    followupOptions: ["Very clear", "Somewhat clear", "Unclear"]
   },
   {
     key: "task3",
-    heading: "Find a 'what if' scenario relevant to you",
+    heading: "Use the AI Assistant and Fault Panel for Decision Support",
     instructions: [
-      "Open the Replay panel",
-      "Click the Scenarios tab",
-      "Find a scenario that interests you",
-      "Try adjusting the slider if there is one"
+      "Check the fault detection panel for any alerts or issues",
+      "Ask the AI assistant a simple question about the building",
+      "Note any suggestions for action"
     ],
-    followup: "Did the scenario result make sense to you?",
-    followupOptions: ["Yes", "Mostly", "Not really"]
+    followup: "Did the AI insights help you understand what actions might be needed?",
+    followupOptions: ["Very helpful", "Somewhat helpful", "Not helpful"]
   }
 ];
-const TASK2_ROLE_MAP = {
-  director: {
-    heading: "Find the solar savings for today",
-    instructions: [
-      "Open the Replay panel",
-      "Click the Solar tab",
-      "Find how much solar saved today in EUR"
-    ]
-  },
-  sustainability: {
-    heading: "Find the solar savings for today",
-    instructions: [
-      "Open the Replay panel",
-      "Click the Solar tab",
-      "Find how much solar saved today in EUR"
-    ]
-  },
-  facilities: {
-    heading: "Find an active fault",
-    instructions: [
-      "Look for the fault detection button (top left of the screen)",
-      "Open the Fault panel",
-      "Find what the most serious fault is and what action is recommended"
-    ]
-  },
-  it: {
-    heading: "Find an active fault",
-    instructions: [
-      "Look for the fault detection button (top left of the screen)",
-      "Open the Fault panel",
-      "Find what the most serious fault is and what action is recommended"
-    ]
-  },
-  worker: {
-    heading: "Play a room heatmap and find the extremes",
-    instructions: [
-      "Open the Replay panel",
-      "Click the IAQ Rooms tab",
-      "Play one of the heatmaps on screen",
-      "Stop the heatmap at any moment",
-      "Identify the rooms with the lowest value and the room with the highest value"
-    ]
-  },
-  visitor: {
-    heading: "Find out what % solar powers the building",
-    instructions: [
-      "Open the Replay panel",
-      "Click the Solar tab",
-      "Find the solar coverage percentage"
-    ]
-  }
-};
+const TASK2_ROLE_MAP = {};
 const OVERALL_LABELS = [
   "Needs a lot of work",
   "Below expectations",
@@ -177,6 +133,8 @@ function getInitialSurvey() {
     startedAt: new Date().toISOString(),
     consentAgreed: false,
     role: null,
+    affiliation: null,
+    affiliationOther: "",
     name: "",
     currentStep: 1,
     totalSteps: 7,
@@ -242,10 +200,12 @@ function clearSurvey() {
 }
 
 function getSurveySubmissionRecord() {
+  const affValue = survey.affiliation === "other" ? (survey.affiliationOther || "") : (survey.affiliation || "");
   return {
     started_at: survey.startedAt,
     role: survey.role || "",
     name: survey.name || "",
+    affiliation: affValue,
     task1_result: JSON.stringify(survey.tasks.task1 || {}),
     task2_result: JSON.stringify(survey.tasks.task2 || {}),
     task3_result: JSON.stringify(survey.tasks.task3 || {}),
@@ -625,9 +585,13 @@ function renderWelcome() {
 function renderRole() {
   const div = document.createElement("div");
   div.innerHTML = `
-    <h2 style="font-size:1.4rem;font-weight:600;margin-bottom:6px;color:var(--text);">First, tell us your role</h2>
+    <h2 style="font-size:1.4rem;font-weight:600;margin-bottom:6px;color:var(--text);">First, tell us your role and affiliation</h2>
     <div style="color:var(--muted);margin-bottom:20px;">This helps us understand your perspective</div>
   `;
+  
+  // Role selection
+  const roleSection = document.createElement("div");
+  roleSection.innerHTML = `<div style="color:var(--text);font-weight:600;margin-bottom:12px;margin-top:16px;">Your role</div>`;
   const grid = document.createElement("div");
   grid.className = "card-grid";
   ROLES.forEach(role => {
@@ -637,8 +601,7 @@ function renderRole() {
     card.onclick = () => {
       survey.role = role.key;
       saveSurvey();
-      // Auto-advance to next step if role selected
-      nextStep();
+      render();
     };
     card.onkeydown = e => { if (e.key === "Enter") { card.onclick(); } };
     card.innerHTML = `
@@ -647,7 +610,60 @@ function renderRole() {
     `;
     grid.appendChild(card);
   });
-  div.appendChild(grid);
+  roleSection.appendChild(grid);
+  div.appendChild(roleSection);
+  
+  // Affiliation selection
+  if (survey.role) {
+    const affSection = document.createElement("div");
+    affSection.innerHTML = `<div style="color:var(--text);font-weight:600;margin-bottom:12px;margin-top:20px;">Your affiliation</div>`;
+    const affGrid = document.createElement("div");
+    affGrid.className = "card-grid";
+    
+    const affiliations = [
+      { key: "ute", label: "University of Twente" },
+      { key: "gate", label: "GATE Institute" },
+      { key: "other", label: "Other" }
+    ];
+    
+    affiliations.forEach(aff => {
+      const card = document.createElement("div");
+      card.className = "role-card" + (survey.affiliation === aff.key ? " selected" : "");
+      card.tabIndex = 0;
+      card.onclick = () => {
+        survey.affiliation = aff.key;
+        saveSurvey();
+        render();
+      };
+      card.onkeydown = e => { if (e.key === "Enter") { card.onclick(); } };
+      card.innerHTML = `<span class="role-title">${aff.label}</span>`;
+      affGrid.appendChild(card);
+    });
+    
+    affSection.appendChild(affGrid);
+    div.appendChild(affSection);
+    
+    // If "Other" is selected, show text input
+    if (survey.affiliation === "other") {
+      const otherSection = document.createElement("div");
+      otherSection.innerHTML = `
+        <div style="margin-top:16px;">
+          <input type="text" placeholder="Please specify your affiliation" value="${survey.affiliationOther || ""}" 
+            oninput="survey.affiliationOther=this.value;saveSurvey();" 
+            style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:1rem;">
+        </div>
+      `;
+      div.appendChild(otherSection);
+    }
+    
+    // Auto-advance button
+    if (survey.affiliation) {
+      const buttonDiv = document.createElement("div");
+      buttonDiv.innerHTML = `<button class="button" style="width:100%;margin-top:20px;" onclick="nextStep()">Continue</button>`;
+      div.appendChild(buttonDiv);
+    }
+  }
+  
   return div;
 }
 

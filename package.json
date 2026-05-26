@@ -1,0 +1,9 @@
+{
+  "name": "rate-my-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx netlify dev",
+    "start": "npx netlify dev"
+  }
+}

@@ -6,6 +6,7 @@ create table if not exists public.survey_responses (
   started_at timestamptz unique,
   role text,
   name text,
+  affiliation text,
   task1_result jsonb,
   task2_result jsonb,
   task3_result jsonb,
@@ -29,6 +30,8 @@ create table if not exists public.survey_responses (
 );
 
 alter table public.survey_responses enable row level security;
+
+drop policy if exists "No direct public access" on public.survey_responses;
 
 create policy "No direct public access"
 on public.survey_responses
