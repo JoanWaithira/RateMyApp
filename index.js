@@ -107,10 +107,12 @@ const TASKS = [
   },
   {
     key: "task3",
-    heading: "Use the AI Assistant and Fault Panel for Decision Support",
+    heading: "Use the AI Assistant  for Decision Support",
     instructions: [
-      "Check the fault detection panel for any alerts or issues",
+      "On the bottom right of the screen, open the AI assistant chat panel",
       "Ask the AI assistant a simple question about the building",
+      "Ask \"show me elevators\" or \"show me conference rooms\" or even \"show me floors\" to see how it highlights areas in the building",
+      "Ask about recent energy use in the building. For example, 'Current temperature, humidity, or CO2 levels in the conference room'",
       "Note any suggestions for action"
     ],
     followup: "Did the AI insights help you understand what actions might be needed?",
