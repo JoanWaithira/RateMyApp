@@ -1406,6 +1406,71 @@ function ratingColor(avg) {
   return "#dc2626";
 }
 
+function heatmapCellColor(rating) {
+  if (rating >= 4.5) return "#15803d";
+  if (rating >= 4.0) return "#16a34a";
+  if (rating >= 3.5) return "#65a30d";
+  if (rating >= 3.0) return "#d97706";
+  if (rating >= 2.0) return "#ea580c";
+  return "#dc2626";
+}
+
+function taskCompletionColor(pct) {
+  if (pct >= 80) return "#16a34a";
+  if (pct >= 60) return "#65a30d";
+  if (pct >= 40) return "#d97706";
+  if (pct >= 20) return "#ea580c";
+  return "#dc2626";
+}
+
+function buildFeaturePriorityQuadrant(featureStats) {
+  const w = 340, h = 300, px = 42, py = 30, pb = 44, pr = 18;
+  const plotW = w - px - pr;
+  const plotH = h - py - pb;
+  const maxX = Math.max(...featureStats.map(f => f.mostUsefulCount), 1);
+  const maxY = Math.max(...featureStats.map(f => f.needsWorkCount), 1);
+  const toX = val => Math.round(px + (val / maxX) * plotW);
+  const toY = val => Math.round(py + plotH - (val / maxY) * plotH);
+  const midX = maxX / 2;
+  const midY = maxY / 2;
+  const qLineX = toX(midX);
+  const qLineY = toY(midY);
+  const dots = featureStats.map(f => {
+    const cx = toX(f.mostUsefulCount);
+    const cy = toY(f.needsWorkCount);
+    const color = f.mostUsefulCount > midX && f.needsWorkCount <= midY ? "#16a34a"
+      : f.mostUsefulCount > midX && f.needsWorkCount > midY ? "#d97706"
+      : f.mostUsefulCount <= midX && f.needsWorkCount > midY ? "#dc2626"
+      : "#4b5563";
+    const shortLabel = escapeAdminHtml(f.title.split(" ").slice(0, 2).join(" "));
+    return `<g>
+      <circle cx='${cx}' cy='${cy}' r='7' fill='${color}' stroke='#1f2937' stroke-width='1.5'/>
+      <text x='${cx}' y='${cy - 11}' text-anchor='middle' fill='#e2e8f0' font-size='9'>${shortLabel}</text>
+    </g>`;
+  }).join("");
+  const xTicks = [0, Math.round(maxX / 2), maxX].map(v =>
+    `<text x='${toX(v)}' y='${py + plotH + 14}' text-anchor='middle' fill='#6b7280' font-size='9'>${v}</text>`
+  ).join("");
+  const yTicks = [0, Math.round(maxY / 2), maxY].map(v =>
+    `<text x='${px - 6}' y='${toY(v) + 4}' text-anchor='end' fill='#6b7280' font-size='9'>${v}</text>`
+  ).join("");
+  return `<svg width='${w}' height='${h}' class='admin-priority-svg' style='display:block;margin:0 auto'>
+    <rect width='${w}' height='${h}' fill='#111827' rx='8'/>
+    <line x1='${qLineX}' y1='${py}' x2='${qLineX}' y2='${py + plotH}' stroke='#374151' stroke-width='1' stroke-dasharray='4,3'/>
+    <line x1='${px}' y1='${qLineY}' x2='${px + plotW}' y2='${qLineY}' stroke='#374151' stroke-width='1' stroke-dasharray='4,3'/>
+    <line x1='${px}' y1='${py + plotH}' x2='${px + plotW}' y2='${py + plotH}' stroke='#4b5563' stroke-width='1'/>
+    <line x1='${px}' y1='${py}' x2='${px}' y2='${py + plotH}' stroke='#4b5563' stroke-width='1'/>
+    ${xTicks}${yTicks}
+    <text x='${px + plotW / 2}' y='${h - 4}' text-anchor='middle' fill='#6b7280' font-size='10'>Most Useful nominations</text>
+    <text x='12' y='${py + plotH / 2}' text-anchor='middle' fill='#6b7280' font-size='10' transform='rotate(-90 12 ${py + plotH / 2})'>Needs Work nominations</text>
+    <text x='${qLineX + (px + plotW - qLineX) / 2}' y='${py + 14}' text-anchor='middle' fill='#16a34a' font-size='8' opacity='0.7'>STRONG</text>
+    <text x='${px + (qLineX - px) / 2}' y='${py + 14}' text-anchor='middle' fill='#6b7280' font-size='8' opacity='0.7'>NEUTRAL</text>
+    <text x='${qLineX + (px + plotW - qLineX) / 2}' y='${qLineY + (py + plotH - qLineY) / 2 + 4}' text-anchor='middle' fill='#d97706' font-size='8' opacity='0.7'>IMPROVE</text>
+    <text x='${px + (qLineX - px) / 2}' y='${qLineY + (py + plotH - qLineY) / 2 + 4}' text-anchor='middle' fill='#dc2626' font-size='8' opacity='0.7'>CONCERN</text>
+    ${dots}
+  </svg>`;
+}
+
 function buildBackendStatusMarkup(activeSource, responseCount) {
   const statuses = [
     {
@@ -1821,6 +1886,49 @@ function buildAdminAnalytics(data) {
     if (bucket) bucket.count += 1;
   });
 
+  const rolesWithData = ROLES.filter(role => data.some(row => row.role === role.key));
+
+  const featureRatingsByRole = {};
+  rolesWithData.forEach(role => {
+    const rows = data.filter(row => row.role === role.key);
+    featureRatingsByRole[role.key] = {};
+    FEATURES.forEach(feature => {
+      const vals = rows.map(row => Number(row[`rating_${feature.key}`]) || 0).filter(Boolean);
+      featureRatingsByRole[role.key][feature.key] = vals.length
+        ? vals.reduce((sum, v) => sum + v, 0) / vals.length
+        : null;
+    });
+  });
+
+  const adoptionByRole = rolesWithData.map(role => {
+    const rows = data.filter(row => row.role === role.key);
+    return {
+      role,
+      count: rows.length,
+      regularly: rows.filter(row => Number(row.would_use) === 0).length,
+      occasionally: rows.filter(row => Number(row.would_use) === 1).length,
+      probablyNot: rows.filter(row => Number(row.would_use) === 2).length,
+      no: rows.filter(row => Number(row.would_use) === 3).length
+    };
+  });
+
+  const taskOutcomesByRole = rolesWithData.map(role => {
+    const rows = data.filter(row => row.role === role.key);
+    const tasks = [1, 2, 3].map(taskNumber => {
+      let easy = 0, difficult = 0, failed = 0, noResult = 0;
+      rows.forEach(row => {
+        const task = parseAdminJson(row[`task${taskNumber}_result`]) || {};
+        if (task.completed === 0) easy += 1;
+        else if (task.completed === 1) difficult += 1;
+        else if (task.completed === 2) failed += 1;
+        else noResult += 1;
+      });
+      const easyPct = rows.length > 0 ? Math.round(100 * easy / rows.length) : 0;
+      return { taskNumber, easyPct, easy, difficult, failed, noResult };
+    });
+    return { role, count: rows.length, tasks };
+  });
+
   return {
     evidence,
     roleBreakdown,
@@ -1839,7 +1947,11 @@ function buildAdminAnalytics(data) {
     overallDistribution,
     wouldUseDistribution,
     taskOutcomeDistributions,
-    interactionBuckets
+    interactionBuckets,
+    rolesWithData,
+    featureRatingsByRole,
+    adoptionByRole,
+    taskOutcomesByRole
   };
 }
 
@@ -2285,6 +2397,119 @@ function renderAdminContent(content, data, sourceLabel) {
           </div>
         </div>
       `).join("")}
+    </div>
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      Feature Ratings by Role
+      <span class='section-badge'>heatmap</span>
+    </div>
+    <div class='admin-section-note'>Average feature usefulness rating (1–5) for each stakeholder role. Green = high rating, red = low, grey = no data from that role.</div>
+    <div class='admin-heatmap-wrap'>
+      <table class='admin-heatmap-table'>
+        <thead>
+          <tr>
+            <th class='admin-heatmap-label-cell'>Feature</th>
+            ${analytics.rolesWithData.map(r => `<th class='admin-heatmap-col-header'>${escapeAdminHtml(r.title.split(" ").slice(0, 2).join(" "))}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${FEATURES.map(f => `
+            <tr>
+              <td class='admin-heatmap-feature-name'>${f.icon} ${escapeAdminHtml(f.title)}</td>
+              ${analytics.rolesWithData.map(r => {
+                const rating = analytics.featureRatingsByRole[r.key]?.[f.key];
+                const bg = rating != null ? heatmapCellColor(rating) : "#1f2937";
+                const fg = rating != null ? "#fff" : "#6b7280";
+                return `<td class='admin-heatmap-cell' style='background:${bg};color:${fg}' title='${escapeAdminHtml(r.title)}: ${rating != null ? rating.toFixed(1) : "No data"}/5'>${rating != null ? rating.toFixed(1) : "—"}</td>`;
+              }).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      Adoption Intent by Role
+      <span class='section-badge'>role × intent</span>
+    </div>
+    <div class='admin-section-note'>How each stakeholder group answered "Would you use this system?" Segments show the proportion of responses in each intent category.</div>
+    <div class='admin-adoption-role-list'>
+      ${analytics.adoptionByRole.map(item => {
+        const n = item.count || 1;
+        const rPct = Math.round(100 * item.regularly / n);
+        const oPct = Math.round(100 * item.occasionally / n);
+        const pPct = Math.round(100 * item.probablyNot / n);
+        const nPct = Math.round(100 * item.no / n);
+        return `
+          <div class='admin-adoption-role-row'>
+            <div class='admin-adoption-role-name'>${escapeAdminHtml(item.role.title.split(" ").slice(0, 2).join(" "))} <span class='admin-adoption-count'>${item.count}</span></div>
+            <div class='admin-adoption-track'>
+              ${item.regularly > 0 ? `<div class='admin-adoption-seg green' style='width:${rPct}%' title='Regularly: ${item.regularly}'><span>${rPct}%</span></div>` : ""}
+              ${item.occasionally > 0 ? `<div class='admin-adoption-seg blue' style='width:${oPct}%' title='Occasionally: ${item.occasionally}'><span>${oPct}%</span></div>` : ""}
+              ${item.probablyNot > 0 ? `<div class='admin-adoption-seg amber' style='width:${pPct}%' title='Probably not: ${item.probablyNot}'><span>${pPct}%</span></div>` : ""}
+              ${item.no > 0 ? `<div class='admin-adoption-seg red' style='width:${nPct}%' title='No: ${item.no}'><span>${nPct}%</span></div>` : ""}
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+    <div class='admin-adoption-legend'>
+      <span><i style='background:#16a34a'></i> Yes, regularly</span>
+      <span><i style='background:#3b82f6'></i> Yes, occasionally</span>
+      <span><i style='background:#d97706'></i> Probably not</span>
+      <span><i style='background:#dc2626'></i> No</span>
+    </div>
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      Task Completion Rate by Role
+      <span class='section-badge'>usability heatmap</span>
+    </div>
+    <div class='admin-section-note'>Percentage of participants per role who completed each task "easily". Green = high completion rate, red = low.</div>
+    <div class='admin-heatmap-wrap'>
+      <table class='admin-heatmap-table'>
+        <thead>
+          <tr>
+            <th class='admin-heatmap-label-cell'>Task</th>
+            ${analytics.taskOutcomesByRole.map(item => `<th class='admin-heatmap-col-header'>${escapeAdminHtml(item.role.title.split(" ").slice(0, 2).join(" "))}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${[1, 2, 3].map(taskNum => `
+            <tr>
+              <td class='admin-heatmap-feature-name'>Task ${taskNum}<br><span style='font-size:10px;opacity:0.7'>${escapeAdminHtml(getTaskTitle(taskNum).split(" ").slice(0, 4).join(" "))}</span></td>
+              ${analytics.taskOutcomesByRole.map(roleItem => {
+                const task = roleItem.tasks[taskNum - 1];
+                const bg = task.easyPct > 0 || roleItem.count > 0 ? taskCompletionColor(task.easyPct) : "#1f2937";
+                const tooltip = `${roleItem.role.title}: ${task.easy} easy, ${task.difficult} difficult, ${task.failed} not completed`;
+                return `<td class='admin-heatmap-cell' style='background:${bg};color:#fff' title='${escapeAdminHtml(tooltip)}'>${task.easyPct}%</td>`;
+              }).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+
+  html += `<div class='admin-section'>
+    <div class='admin-section-header'>
+      Feature Priority Quadrant
+      <span class='section-badge'>most useful vs needs work</span>
+    </div>
+    <div class='admin-section-note'>Each dot is a feature plotted by how often it was nominated as "most useful" (X) versus "needs work" (Y). Green = strong performer, amber = improve, red = concern, grey = neutral.</div>
+    <div class='admin-priority-wrap'>
+      ${buildFeaturePriorityQuadrant(analytics.featureStats)}
+      <div class='admin-priority-legend'>
+        <span><i style='background:#16a34a'></i> Strong (high value, low issues)</span>
+        <span><i style='background:#d97706'></i> Improve (high value, high issues)</span>
+        <span><i style='background:#dc2626'></i> Concern (low value, high issues)</span>
+        <span><i style='background:#4b5563'></i> Neutral</span>
+      </div>
     </div>
   </div>`;
 

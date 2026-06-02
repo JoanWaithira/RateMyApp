@@ -2095,6 +2095,164 @@
       white-space: pre-wrap;
       word-break: break-word;
     }
+    /* Feature Ratings Heatmap & Task Completion Heatmap */
+    .admin-heatmap-wrap {
+      overflow-x: auto;
+      margin-top: 12px;
+    }
+    .admin-heatmap-table {
+      border-collapse: separate;
+      border-spacing: 3px;
+      width: 100%;
+      min-width: 420px;
+    }
+    .admin-heatmap-label-cell {
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: left;
+      white-space: nowrap;
+    }
+    .admin-heatmap-col-header {
+      padding: 6px 4px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.3;
+      white-space: nowrap;
+      max-width: 80px;
+    }
+    .admin-heatmap-feature-name {
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--text);
+      white-space: nowrap;
+      min-width: 140px;
+    }
+    .admin-heatmap-cell {
+      padding: 7px 6px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 4px;
+      min-width: 42px;
+      cursor: default;
+      transition: filter 0.15s;
+    }
+    .admin-heatmap-cell:hover {
+      filter: brightness(1.2);
+    }
+    /* Adoption Intent by Role */
+    .admin-adoption-role-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .admin-adoption-role-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .admin-adoption-role-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      min-width: 130px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .admin-adoption-count {
+      background: #374151;
+      color: #9ca3af;
+      border-radius: 10px;
+      padding: 1px 6px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .admin-adoption-track {
+      flex: 1;
+      display: flex;
+      height: 26px;
+      border-radius: 5px;
+      overflow: hidden;
+      background: #1f2937;
+    }
+    .admin-adoption-seg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      overflow: hidden;
+      transition: width 0.3s;
+      min-width: 0;
+    }
+    .admin-adoption-seg span {
+      white-space: nowrap;
+      overflow: hidden;
+      padding: 0 3px;
+    }
+    .admin-adoption-seg.green { background: #16a34a; }
+    .admin-adoption-seg.blue  { background: #3b82f6; }
+    .admin-adoption-seg.amber { background: #d97706; }
+    .admin-adoption-seg.red   { background: #dc2626; }
+    .admin-adoption-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .admin-adoption-legend span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .admin-adoption-legend i {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    /* Feature Priority Quadrant */
+    .admin-priority-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .admin-priority-svg {
+      border-radius: 8px;
+      max-width: 100%;
+    }
+    .admin-priority-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .admin-priority-legend span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .admin-priority-legend i {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
     @media (max-width: 720px) {
       .admin-table-toolbar {
         flex-direction: column;
